@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
@@ -23,6 +24,12 @@ def _safe_next(request, default="core:home"):
     return default
 
 
+def _demo_code_notice(request, otp):
+    """Public demo has no SMS/email provider, so show the code on screen."""
+    if settings.DEMO_MODE:
+        messages.info(request, f"Demo mode: your code is {otp.demo_code}")
+
+
 def register(request):
     if request.user.is_authenticated:
         return redirect("core:home")
@@ -38,8 +45,9 @@ def register(request):
             date_of_birth=data["date_of_birth"],
         )
         login(request, user, backend=BACKEND)
-        services.issue_otp(user)
+        otp = services.issue_otp(user)
         messages.success(request, "Account created. Enter the 6-digit code we just sent you.")
+        _demo_code_notice(request, otp)
         return redirect("accounts:verify")
     return render(request, "accounts/register.html", {"form": form, "google_enabled": oauth.is_enabled()})
 
@@ -95,8 +103,9 @@ def verify(request):
 @require_POST
 def resend_otp(request):
     try:
-        services.issue_otp(request.user)
+        otp = services.issue_otp(request.user)
         messages.success(request, "A new code is on its way.")
+        _demo_code_notice(request, otp)
     except services.AccountError as exc:
         messages.error(request, str(exc))
     return redirect("accounts:verify")

@@ -24,6 +24,9 @@
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
   </svg>
 
+  {% if DEMO_MODE %}
+  <div class="demo-banner">🧪 Public demo — no real money. Payments use a test checkout; codes are shown on screen.</div>
+  {% endif %}
   <header class="site-header">
     <div class="container">
       <a class="brand" href="{% url 'core:home' %}">

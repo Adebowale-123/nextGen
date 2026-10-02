@@ -363,3 +363,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ball.xl { width: 62px; height: 62px; font-size: 1.5rem; animation: drop .45s ease-out both; }
 @keyframes pop { from { transform: scale(.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes drop { from { transform: translateY(-14px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.demo-banner { background: #fff3e0; color: #8a5300; text-align: center; font-size: .85rem; font-weight: 600; padding: 7px 16px; border-bottom: 1px solid #f6d7a7; }

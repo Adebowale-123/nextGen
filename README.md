@@ -51,6 +51,24 @@ On PostgreSQL, a database trigger also makes ledger rows physically un-updatable
 
 ---
 
+## Public demo on Render
+
+`render.yaml` sets up the web service and a PostgreSQL database in demo mode:
+- payments use the sandbox checkout, so no real money moves,
+- sign-up codes appear on screen,
+- a "no real money" banner shows on every page.
+
+1. Open https://render.com/deploy?repo=https://github.com/Adebowale-123/nextGen and sign in with GitHub.
+2. Enter **ADMIN_EMAIL** and **ADMIN_PASSWORD**. They become your back-office login and are stored only in Render.
+3. Click **Apply**. The first build takes about 5 minutes; the site then appears at `https://nextgen-game.onrender.com` (or similar).
+
+Free-plan limits:
+- The site sleeps after 15 minutes without visitors, and the first visit afterwards takes about 30 seconds.
+- The free database expires after 30 days unless you upgrade it.
+- Uploaded ID photos are lost on each redeploy.
+
+Games open, close and settle as visitors arrive, because the free plan has no always-on worker. For a real launch, upgrade the plan, add a background worker running `python manage.py run_scheduler`, and set `DEMO_MODE=false` and `SCHEDULER_ON_REQUEST=false`.
+
 ## The main game: NextGen Daily (spin game)
 
 - **Price and numbers:** ₦500 per play. Pressing **Play Game** gives the player 4 random numbers from 1–90.

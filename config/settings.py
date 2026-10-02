@@ -50,6 +50,22 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 SITE_URL = env("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
 
+# Render sets these automatically for every web service.
+RENDER_HOSTNAME = env("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_HOSTNAME}")
+    SITE_URL = env("SITE_URL", f"https://{RENDER_HOSTNAME}").rstrip("/")
+
+# Public demo: shows a "no real money" banner and displays sign-up codes on screen
+# (because no SMS/email provider is connected). Must be off for a real launch.
+DEMO_MODE = env_bool("DEMO_MODE", False)
+
+# Free hosting has no always-on background worker, so the website itself advances
+# games (open/close batches, settle) at most every SCHEDULER_ON_REQUEST_SECONDS.
+SCHEDULER_ON_REQUEST = env_bool("SCHEDULER_ON_REQUEST", False)
+SCHEDULER_ON_REQUEST_SECONDS = env_int("SCHEDULER_ON_REQUEST_SECONDS", 20)
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -70,11 +86,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.core.middleware.IdleSessionTimeoutMiddleware",
+    "apps.core.middleware.RequestDrivenSchedulerMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -175,6 +193,13 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if not DEBUG else "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
 # KYC documents live here. They are never served publicly; staff download them
 # through an access-controlled view.

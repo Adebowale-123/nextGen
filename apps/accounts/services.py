@@ -117,6 +117,7 @@ def issue_otp(user, purpose=OneTimePassword.Purpose.VERIFY_CONTACT, channel=None
         code_hash=f"{salt}${_hash_code(salt, code)}",
         expires_at=timezone.now() + timedelta(seconds=RULES["OTP_TTL_SECONDS"]),
     )
+    otp.demo_code = code  # only ever shown on screen when DEMO_MODE is on
     message = f"Your NextGen Game code is {code}. It expires in {RULES['OTP_TTL_SECONDS'] // 60} minutes."
     if channel == OneTimePassword.Channel.SMS:
         send_sms(destination, message)

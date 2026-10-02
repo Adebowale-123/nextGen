@@ -1,4 +1,5 @@
 from django.db.models import Count, Sum
+from django.http import HttpResponse
 from django.shortcuts import render
 
 from apps.games import services as games
@@ -29,6 +30,11 @@ def dashboard_context(user):
         "kyc": user.kyc_submissions.select_related("bank_account").first(),
         "bank_account": user.payout_accounts.filter(is_active=True).order_by("-name_verified", "-created_at").first(),
     }
+
+
+def healthz(request):
+    """Uptime check for the hosting platform."""
+    return HttpResponse("ok", content_type="text/plain")
 
 
 def fairness(request):
