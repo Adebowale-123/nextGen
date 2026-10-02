@@ -1,0 +1,11 @@
+{% load nextgen %}
+<div class="stat-row">
+  <div class="stat"><div class="label">Deposits ({{ s.deposit_count }})</div><div class="value">{{ s.deposits|money }}</div></div>
+  <div class="stat"><div class="label">Withdrawals ({{ s.withdrawal_count }})</div><div class="value">{{ s.withdrawals|money }}</div></div>
+  <div class="stat"><div class="label">Ticket sales ({{ s.ticket_count }})</div><div class="value">{{ s.stakes|money }}</div></div>
+  <div class="stat"><div class="label">Prizes paid</div><div class="value">{{ s.prizes|money }}</div></div>
+  <div class="stat"><div class="label">GGR (settled)</div><div class="value {% if s.ggr < 0 %}neg{% else %}pos{% endif %}">{{ s.ggr|money }}</div></div>
+  <div class="stat"><div class="label">Payout ratio</div><div class="value">{% if s.payout_ratio is not None %}{{ s.payout_ratio }}%{% else %}—{% endif %}</div></div>
+  <div class="stat"><div class="label">New players</div><div class="value">{{ s.new_players }}</div></div>
+  <div class="stat"><div class="label">Draws settled</div><div class="value">{{ s.draws_settled }}</div></div>
+</div>

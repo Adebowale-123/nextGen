@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Verify your account{% endblock %}
+{% block content %}
+<div class="card auth-card center">
+  <h1>Enter your code</h1>
+  <p class="muted">We sent a 6-digit code to <b>{{ destination }}</b>. It expires in 5 minutes.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% include "partials/form_field.html" with field=form.code %}
+    <button class="btn btn-accent btn-block btn-lg" type="submit">Verify</button>
+  </form>
+  <form method="post" action="{% url 'accounts:resend_otp' %}" style="margin-top:16px">
+    {% csrf_token %}
+    <span class="muted">Didn't get it?</span> <button class="link-btn" type="submit">Resend code</button>
+  </form>
+</div>
+{% endblock %}

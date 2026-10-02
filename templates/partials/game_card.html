@@ -1,0 +1,50 @@
+{% load nextgen %}
+<article class="card game-card">
+  <div class="game-card-top">
+    <div class="trophy"><svg class="icon"><use href="#i-trophy"/></svg></div>
+    <div class="grow">
+      <h3 class="mb-0">{{ card.game.name }}</h3>
+      <div class="muted">Prize pool: <b>{{ card.prize_pool|money:card.game.currency }}</b></div>
+    </div>
+    <div class="price">{{ card.game.ticket_price|money:card.game.currency }}</div>
+  </div>
+
+  <div class="game-clock">
+    {% if card.is_open %}
+      <div>
+        <div class="countdown-label">Closes in</div>
+        <div class="countdown" data-countdown="{{ card.closes_at.isoformat }}" data-done-text="Closed">--:--:--</div>
+        <small>at {{ card.closes_at|date:"g:i A" }}</small>
+      </div>
+      {% if card.next_opens_at %}
+      <div class="right">
+        <div class="countdown-label">Next game opens in</div>
+        <div class="countdown soft" data-countdown="{{ card.next_opens_at.isoformat }}" data-done-text="Open now">--:--:--</div>
+        <small>at {{ card.next_opens_at|date:"g:i A" }}</small>
+      </div>
+      {% endif %}
+    {% else %}
+      <div>
+        <div class="countdown-label">{% if card.awaiting_spin %}Game closed · winners after the spin{% else %}Game closed{% endif %}</div>
+        <div class="countdown-label" style="margin-top:8px">Next game opens in</div>
+        <div class="countdown" data-countdown="{{ card.next_opens_at.isoformat }}" data-done-text="Open now — refresh">--:--:--</div>
+        <small>at {{ card.next_opens_at|date:"D g:i A" }}</small>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="game-actions">
+    {% if card.is_open %}
+      <form method="post" action="{% url 'games:play_game' card.game.slug %}" data-play-form
+            data-game="{{ card.game.name }}" data-price="{{ card.game.ticket_price|money:card.game.currency }}"
+            data-count="{{ card.game.pick_count }}">
+        {% csrf_token %}
+        {% new_token as token %}<input type="hidden" name="purchase_token" value="{{ token }}">
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Play Game</button>
+      </form>
+    {% else %}
+      <button class="btn btn-primary btn-block btn-lg" type="button" disabled>Opens {{ card.next_opens_at|date:"g:i A" }}</button>
+    {% endif %}
+    <a class="btn btn-ghost btn-block btn-lg" href="{% url 'games:game_detail' card.game.slug %}">View Details</a>
+  </div>
+</article>

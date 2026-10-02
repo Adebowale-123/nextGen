@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Ledger{% endblock %}
+{% block content %}
+<div class="row between"><h1 class="mb-0">Ledger</h1><a class="btn btn-primary btn-sm" href="?verify=1">Run integrity check</a></div>
+{% include "backoffice/_nav.html" with active="ledger" %}
+
+{% if verified %}
+  {% if problems %}
+    <div class="alert alert-error"><b>{{ problems|length }} problem(s) found:</b><ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul></div>
+  {% else %}
+    <div class="alert alert-success">✓ Every transaction balances (debits = credits) and every stored balance matches its entries.</div>
+  {% endif %}
+{% endif %}
+
+<section class="card">
+  <h3>Operator & pooled accounts</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Account</th><th>Type</th><th>Purpose</th><th class="num">Balance</th></tr></thead>
+      <tbody>
+        {% for a in system_accounts %}
+          <tr><td><a href="{% url 'admin:ledger_ledgeraccount_change' a.pk %}">{{ a.name }}</a><div class="faint mono">{{ a.code }}</div></td>
+            <td>{{ a.get_kind_display }}</td><td>{{ a.get_purpose_display }}</td><td class="num">{{ a.balance|money:a.currency }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="muted">No system accounts yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="faint" style="font-size:.8rem;margin:10px 0 0">Balances are shown in each account's normal direction. Player wallets total <b>{{ segregation.player_cash|money }}</b> (see the Wallets admin for individual balances). Browse every posting under <a href="{% url 'admin:ledger_journaltransaction_changelist' %}">Journal transactions</a>.</p>
+</section>
+{% endblock %}

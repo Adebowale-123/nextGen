@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}My dashboard{% endblock %}
+{% block content %}
+{% if not user.is_contact_verified %}
+  <div class="alert alert-warning row between">
+    <span>Confirm your {% if user.phone %}phone number{% else %}email{% endif %} to start playing and get your welcome bonus.</span>
+    <a class="btn btn-primary btn-sm" href="{% url 'accounts:verify' %}">Enter code</a>
+  </div>
+{% endif %}
+
+<section class="card balance-card">
+  <div>
+    <div class="balance-label">Hi {{ user.display_name }}, your balance</div>
+    <div class="balance-amount">{{ nav_wallet.account.balance|money:nav_wallet.currency }}</div>
+    {% if nav_wallet.bonus_balance %}<div class="bonus-line">🎁 + {{ nav_wallet.bonus_balance|money:nav_wallet.currency }} bonus to play</div>{% endif %}
+  </div>
+  <div class="row">
+    <a class="btn btn-primary btn-lg" href="{% url 'payments:deposit' %}">Add money</a>
+    <a class="btn btn-ghost btn-lg" href="{% url 'payments:withdraw' %}">Withdraw</a>
+  </div>
+</section>
+
+<section style="margin-top:24px">
+  <h2>Play now</h2>
+  {% if spin_cards or open_draws %}
+    <div class="grid grid-2">{% for card in spin_cards %}{% include "partials/game_card.html" %}{% endfor %}{% for draw in open_draws %}{% include "partials/draw_card.html" %}{% endfor %}</div>
+  {% else %}
+    <div class="card empty">No games right now. Check back soon.</div>
+  {% endif %}
+</section>
+
+<div class="grid grid-2" style="margin-top:24px">
+  <section class="card">
+    <div class="card-header"><h3>My details</h3><a href="{% url 'accounts:profile' %}">Edit</a></div>
+    <dl class="kv">
+      <dt>Name</dt><dd><b>{{ user.full_name }}</b></dd>
+      {% if user.phone %}<dt>Phone</dt><dd>{{ user.phone }}</dd>{% endif %}
+      {% if user.email %}<dt>Email</dt><dd>{{ user.email }}</dd>{% endif %}
+      <dt>Date of birth</dt><dd>{{ user.date_of_birth|date:"j M Y"|default:"—" }}</dd>
+      <dt>Member since</dt><dd>{{ user.date_joined|date:"j M Y" }}</dd>
+      <dt>Bank account</dt>
+      <dd>
+        {% if bank_account %}
+          {{ bank_account.account_name }}<br><span class="muted">{{ bank_account.bank_name }} · {{ bank_account.masked_number }}</span>
+          {% if bank_account.name_verified %}<br><span class="badge badge-success">✓ Name matches ID</span>{% endif %}
+        {% else %}<span class="muted">Not added yet</span>{% endif %}
+      </dd>
+      <dt>KYC status</dt>
+      <dd>
+        {% if user.kyc_tier >= 2 %}
+          <span class="badge badge-success">✓ Verified</span>
+        {% elif kyc and kyc.status == 'pending' %}
+          <span class="badge badge-warning">Being checked</span>
+        {% elif kyc and kyc.status == 'rejected' %}
+          <span class="badge badge-danger">✗ Failed</span>
+          <div class="sub" style="margin-top:4px">{{ kyc.rejection_reason }}</div>
+          <a class="btn btn-primary btn-sm" style="margin-top:8px" href="{% url 'accounts:kyc' %}">Try again</a>
+        {% else %}
+          <span class="badge">Not verified</span>
+          <div><a class="btn btn-primary btn-sm" style="margin-top:8px" href="{% url 'accounts:kyc' %}">Verify now</a></div>
+        {% endif %}
+      </dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h3>My games</h3>
+    <div class="stat-row">
+      <div class="stat"><div class="label">Games played</div><div class="value">{{ played_count }}</div></div>
+      <div class="stat"><div class="label">Games won</div><div class="value">{{ won_count }}</div></div>
+      <div class="stat"><div class="label">Total won</div><div class="value pos">{{ won_total|money }}</div></div>
+    </div>
+    <div class="tabs" style="margin-top:16px" data-tabs>
+      <a href="#played" class="active" data-tab="played">Played</a>
+      <a href="#won" data-tab="won">Won</a>
+    </div>
+    <div data-panel="played">
+      {% if played_tickets %}
+        <ul class="list">
+          {% for t in played_tickets %}
+            <li class="list-item">
+              <a class="grow" href="{% url 'games:ticket_detail' t.serial %}" style="color:inherit;text-decoration:none">
+                <div class="sub">{{ t.draw.game.name }} · {{ t.purchased_at|date:"j M, g:i A" }}</div>
+                <div class="balls" style="margin-top:6px">{% for n in t.numbers %}<span class="ball {% if n in t.draw.winning_numbers %}hit{% endif %}">{{ n }}</span>{% endfor %}</div>
+              </a>
+              {% include "games/_ticket_status.html" with ticket=t %}
+            </li>
+          {% endfor %}
+        </ul>
+        <a href="{% url 'games:my_tickets' %}">See all</a>
+      {% else %}<div class="empty">No games yet. Press <b>Play Game</b> above!</div>{% endif %}
+    </div>
+    <div data-panel="won" hidden>
+      {% if won_tickets %}
+        <ul class="list">
+          {% for t in won_tickets %}
+            <li class="list-item">
+              <a class="grow" href="{% url 'games:ticket_detail' t.serial %}" style="color:inherit;text-decoration:none">
+                <div class="title">{{ t.prize_label|default:"Win" }}</div>
+                <div class="sub">{{ t.draw.game.name }} · {{ t.draw.closes_at|date:"j M Y" }} · matched {{ t.match_count }}</div>
+              </a>
+              <span class="amount tx-in">+{{ t.prize_amount|money:t.draw.game.currency }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+        <a href="{% url 'games:my_tickets' %}?status=won">See all wins</a>
+      {% else %}<div class="empty">No wins yet — good luck!</div>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

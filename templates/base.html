@@ -1,0 +1,112 @@
+{% load static nextgen %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}Play daily draws{% endblock %} · {{ BRAND_NAME }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=7">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 0 4v0a2 2 0 0 1 0 4v2a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-2a2 2 0 0 1 0-4 2 2 0 0 1 0-4V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M14 5v14" stroke-dasharray="2 2"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2"/><circle cx="16" cy="14.5" r="1.2"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="{% url 'core:home' %}">
+        <span class="brand-mark">NG</span>
+        <span>NextGen <b>Game</b></span>
+      </a>
+      {% with p=request.path %}
+      <nav class="main-nav" aria-label="Main">
+        <a href="{% url 'games:lobby' %}" class="{% if '/play/' in p %}active{% endif %}">Play</a>
+        <a href="{% url 'games:results' %}" class="{% if '/results/' in p %}active{% endif %}">Results</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'games:my_tickets' %}" class="{% if '/tickets/' in p %}active{% endif %}">My Tickets</a>
+          <a href="{% url 'payments:wallet' %}" class="{% if '/wallet/' in p %}active{% endif %}">Wallet</a>
+        {% endif %}
+      </nav>
+      {% endwith %}
+      <div class="header-actions">
+        {% if user.is_authenticated %}
+          {% if nav_wallet %}
+            <a class="balance-pill" href="{% url 'payments:deposit' %}" title="Deposit">
+              {{ nav_wallet.account.balance|money:nav_wallet.currency }} <span class="plus">+</span>
+            </a>
+          {% endif %}
+          <a class="icon-btn" href="{% url 'notifications:inbox' %}" aria-label="Notifications">
+            <svg class="icon"><use href="#i-bell"/></svg>
+            {% if unread_notifications %}<span class="dot">{{ unread_notifications }}</span>{% endif %}
+          </a>
+          <a class="icon-btn hide-sm" href="{% url 'accounts:profile' %}" aria-label="Account"><svg class="icon"><use href="#i-user"/></svg></a>
+          {% if user.is_staff %}<a class="btn btn-ghost btn-sm hide-sm" href="{% url 'backoffice:dashboard' %}">Back office</a>{% endif %}
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{% url 'accounts:login' %}">Log in</a>
+          <a class="btn btn-accent btn-sm" href="{% url 'accounts:register' %}">Join now</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container {% block container_class %}{% endblock %}">
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="alert alert-{% if message.tags == 'error' %}error{% else %}{{ message.tags|default:'info' }}{% endif %}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="row between">
+        <div class="row">
+          <span class="age-badge">18+</span>
+          <span>Play responsibly. Gambling can be addictive — set limits that work for you.
+            {% if user.is_authenticated %}<a href="{% url 'compliance:settings' %}">Responsible gaming tools</a>{% endif %}</span>
+        </div>
+        <div class="row">
+          <a href="{% url 'core:fairness' %}">Provably fair</a>
+          <a href="{% url 'games:results' %}">Results</a>
+          {% if user.is_authenticated %}
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="link-btn" type="submit">Log out</button></form>
+          {% endif %}
+        </div>
+      </div>
+      <p class="mt-0" style="margin-top:14px">© {% now "Y" %} {{ BRAND_NAME }}. Operated under licence — licence details to be added before launch.</p>
+    </div>
+  </footer>
+
+  {% if user.is_authenticated %}
+  {% with p=request.path %}
+  <nav class="tabbar" aria-label="Mobile">
+    <a href="{% url 'core:home' %}" class="{% if p == '/' %}active{% endif %}"><svg class="icon"><use href="#i-home"/></svg>Home</a>
+    <a href="{% url 'games:lobby' %}" class="{% if '/play/' in p %}active{% endif %}"><svg class="icon"><use href="#i-play"/></svg>Play</a>
+    <a href="{% url 'games:my_tickets' %}" class="{% if '/tickets/' in p %}active{% endif %}"><svg class="icon"><use href="#i-ticket"/></svg>Tickets</a>
+    <a href="{% url 'payments:wallet' %}" class="{% if '/wallet/' in p %}active{% endif %}"><svg class="icon"><use href="#i-wallet"/></svg>Wallet</a>
+    <a href="{% url 'accounts:profile' %}" class="{% if '/accounts/' in p %}active{% endif %}"><svg class="icon"><use href="#i-user"/></svg>Account</a>
+  </nav>
+  {% endwith %}
+  {% endif %}
+
+  <script src="{% static 'js/app.js' %}?v=7" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

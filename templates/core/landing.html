@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Play daily, win big{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Play once.<br><span class="glow-text">Win up to ₦100,000.</span></h1>
+  <p class="lead">One tap gives you 4 lucky numbers. Two games every day. New players get a ₦500 welcome bonus.</p>
+  <a class="btn btn-primary btn-lg" href="{% url 'accounts:register' %}">Get started</a>
+  <p class="muted" style="margin-top:14px">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a></p>
+</section>
+
+{% if spin_cards or open_draws %}
+<section>
+  <h2>Today's games</h2>
+  <div class="grid grid-2">
+    {% for card in spin_cards %}{% include "partials/game_card.html" %}{% endfor %}{% for draw in open_draws %}{% include "partials/draw_card.html" %}{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="grid grid-3 how" style="margin-top:36px">
+  <div class="center"><div class="step-num">1</div><h3>Sign up</h3><p class="muted mb-0">Use your phone number or email and get ₦500 to play.</p></div>
+  <div class="center"><div class="step-num">2</div><h3>Press Play Game</h3><p class="muted mb-0">Your 4 numbers are generated instantly.</p></div>
+  <div class="center"><div class="step-num">3</div><h3>Watch the spin</h3><p class="muted mb-0">Winnings go straight into your wallet.</p></div>
+</section>
+{% endblock %}

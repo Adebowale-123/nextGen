@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <p>This will apply to:</p>
+  <ul>{% for obj in objects %}<li>{{ obj }}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}"></li>{% endfor %}</ul>
+  <p>
+    <label for="reason"><b>{{ label }}</b> (shown to the player where relevant)</label><br>
+    <textarea id="reason" name="reason" rows="3" cols="60" required></textarea>
+  </p>
+  <input type="hidden" name="action" value="{{ action }}">
+  <input type="hidden" name="apply" value="1">
+  <input type="submit" value="Confirm">
+  <a href="." class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Notifications{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<h1>Notifications</h1>
+<div class="card">
+  {% if page.object_list %}
+    <ul class="list">
+      {% for n in page %}
+        <li class="list-item">
+          <div class="tx-icon">{% if n.kind == 'win' %}🏆{% elif n.kind == 'wallet' %}💳{% elif n.kind == 'account' %}👤{% else %}🔔{% endif %}</div>
+          <div class="grow">
+            <div class="title">{{ n.title }} {% if not n.read_at %}<span class="badge badge-accent">New</span>{% endif %}</div>
+            <div class="sub">{{ n.body }}</div>
+            <div class="sub faint">{{ n.created_at|naturaltime }}{% if n.link %} · <a href="{{ n.link }}">View</a>{% endif %}</div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% include "partials/pagination.html" %}
+  {% else %}
+    <div class="empty">You're all caught up.</div>
+  {% endif %}
+</div>
+{% endblock %}

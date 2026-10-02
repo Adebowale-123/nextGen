@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Deposit{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block head %}{% if deposit.status == 'pending' %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block content %}
+<div class="card center" style="margin-top:24px">
+  {% if deposit.status == 'success' %}
+    <div style="font-size:3rem">✅</div>
+    <h1>Deposit successful</h1>
+    <p class="muted">{{ deposit.amount|money:deposit.currency }} has been added to your wallet.</p>
+    <div class="row" style="justify-content:center">
+      <a class="btn btn-accent" href="{% url 'games:lobby' %}">Play now</a>
+      <a class="btn btn-ghost" href="{% url 'payments:wallet' %}">View wallet</a>
+    </div>
+  {% elif deposit.status == 'failed' %}
+    <div style="font-size:3rem">⚠️</div>
+    <h1>Payment not completed</h1>
+    <p class="muted">{{ deposit.failure_reason|default:"The payment was not successful." }} You have not been charged.</p>
+    <a class="btn btn-primary" href="{% url 'payments:deposit' %}">Try again</a>
+  {% else %}
+    <div style="font-size:3rem">⏳</div>
+    <h1>Confirming your payment…</h1>
+    <p class="muted">We're waiting for confirmation from the payment provider. This page refreshes automatically.</p>
+    <a class="btn btn-ghost" href="{% url 'payments:wallet' %}">Back to wallet</a>
+  {% endif %}
+  <p class="faint" style="margin-top:16px;font-size:.8rem">Reference: <span class="mono">{{ deposit.reference }}</span></p>
+</div>
+{% endblock %}

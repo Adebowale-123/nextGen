@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}My tickets{% endblock %}
+{% block content %}
+<div class="row between"><h1 class="mb-0">My tickets</h1><a class="btn btn-accent btn-sm" href="{% url 'games:lobby' %}">Buy tickets</a></div>
+<div class="tabs" style="margin-top:16px">
+  <a href="?" class="{% if not status %}active{% endif %}">All</a>
+  {% for value, label in statuses %}<a href="?status={{ value }}" class="{% if status == value %}active{% endif %}">{{ label }}</a>{% endfor %}
+</div>
+<div class="card">
+  {% if page.object_list %}
+    <ul class="list">
+      {% for t in page %}
+        <li class="list-item">
+          <div class="grow">
+            <div class="title">{{ t.draw }} <span class="sub">· {{ t.draw.closes_at|date:"D j M, g:i A" }}</span></div>
+            <div class="balls" style="margin-top:8px">{% for n in t.numbers %}<span class="ball {% if n in t.draw.winning_numbers %}hit{% endif %}">{{ n }}</span>{% endfor %}</div>
+            {% if t.draw.winning_numbers %}<div class="sub" style="margin-top:6px">Drawn: {{ t.draw.winning_numbers|join:", " }}</div>{% endif %}
+          </div>
+          <div class="right">
+            {% include "games/_ticket_status.html" with ticket=t %}
+            <div style="margin-top:6px"><a class="sub" href="{% url 'games:ticket_detail' t.serial %}">{{ t.serial }}</a></div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% if status %}{% with "status="|add:status as extra_qs %}{% include "partials/pagination.html" %}{% endwith %}{% else %}{% include "partials/pagination.html" %}{% endif %}
+  {% else %}
+    <div class="empty">No tickets here yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

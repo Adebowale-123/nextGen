@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}{{ game.name }}{% endblock %}
+{% block content %}
+<div class="row between" style="margin-bottom:16px">
+  <div>
+    <h1 class="mb-0">{{ game.name }}</h1>
+    <span class="muted">Pick {{ game.pick_count }} numbers · {{ game.ticket_price|money:game.currency }} per line</span>
+  </div>
+  <div class="right">
+    <div class="countdown-label">Closes in</div>
+    <div class="countdown" data-countdown="{{ draw.closes_at.isoformat }}" data-done-text="Closed">--:--:--</div>
+  </div>
+</div>
+
+<div class="play-layout">
+  <section class="card" data-picker data-pick="{{ game.pick_count }}" data-max="{{ game.number_max }}"
+           data-price="{{ game.ticket_price }}" data-max-lines="{{ game.max_lines_per_purchase }}">
+    <div class="card-header">
+      <h3 data-pick-status>Pick {{ game.pick_count }} numbers</h3>
+      <button type="button" class="btn btn-ghost btn-sm" data-quick-pick>Pick for me</button>
+    </div>
+    <div class="picker-grid">
+      {% for n in numbers %}<button type="button" class="pick" data-n="{{ n }}">{{ n }}</button>{% endfor %}
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button type="button" class="btn btn-primary" data-add-line disabled>Add to ticket</button>
+      <button type="button" class="link-btn" data-clear>Clear</button>
+    </div>
+    <noscript><p class="alert alert-warning">Please enable JavaScript to pick numbers.</p></noscript>
+  </section>
+
+  <aside class="card sticky-summary">
+    <h3>Your ticket</h3>
+    <div data-lines></div>
+    <hr>
+    <div class="row between"><span class="muted">Total (<span data-line-count>0</span> lines)</span><span class="amount" style="font-size:1.4rem" data-total>₦0.00</span></div>
+    <form method="post" data-purchase-form style="margin-top:16px">
+      {% csrf_token %}
+      <input type="hidden" name="lines" value="[]">
+      <input type="hidden" name="purchase_token" value="{{ purchase_token }}">
+      <button class="btn btn-primary btn-block btn-lg" type="submit" disabled>
+        {% if user.is_authenticated %}Buy ticket{% else %}Log in to buy{% endif %}
+      </button>
+    </form>
+  </aside>
+</div>
+
+<details class="card plain-details" style="margin-top:20px">
+  <summary>How much can I win?</summary>
+  <ul class="list" style="margin-top:8px">
+    {% for tier in tiers %}
+      <li class="list-item"><div class="grow">Match {{ tier.match_count }} numbers</div><b>{{ tier.payout_label }}</b></li>
+    {% endfor %}
+  </ul>
+</details>
+
+{% if my_tickets %}
+<section class="card" style="margin-top:20px">
+  <h3>Your tickets for this draw</h3>
+  <ul class="list">
+    {% for t in my_tickets %}
+      <li class="list-item"><div class="balls grow">{% for n in t.numbers %}<span class="ball">{{ n }}</span>{% endfor %}</div></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

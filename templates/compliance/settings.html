@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Responsible gaming{% endblock %}
+{% block content %}
+<h1>Responsible gaming</h1>
+<p class="muted">Play should stay fun. Set limits that suit you, or take a break whenever you need one.</p>
+
+{% if rg.is_self_excluded %}
+  <div class="alert alert-warning">You're self-excluded until <b>{{ rg.self_excluded_until|date:"j M Y, g:i A" }}</b>. Deposits and ticket purchases are paused. You can still withdraw your balance.</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <section class="card">
+    <h3>Daily limits</h3>
+    <div class="stat-row" style="margin-bottom:16px">
+      <div class="stat"><div class="label">Deposited today</div><div class="value">{{ deposited_today|money }}</div><small>of {{ effective_deposit_limit|money }}</small></div>
+      <div class="stat"><div class="label">Played today</div><div class="value">{{ staked_today|money }}</div>{% if rg.daily_stake_limit is not None %}<small>of {{ rg.daily_stake_limit|money }}</small>{% else %}<small>no limit set</small>{% endif %}</div>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form.html" %}
+      {% if rg.pending_effective_at %}
+        <div class="alert alert-info">Pending increase takes effect {{ rg.pending_effective_at|date:"j M, g:i A" }}:
+          {% if rg.pending_deposit_limit is not None %}deposit {{ rg.pending_deposit_limit|money }}{% endif %}
+          {% if rg.pending_stake_limit is not None %} play {{ rg.pending_stake_limit|money }}{% endif %}</div>
+      {% endif %}
+      <button class="btn btn-primary" type="submit">Save limits</button>
+      <p class="faint" style="font-size:.85rem;margin:10px 0 0">Lowering a limit applies immediately. Raising or removing one takes effect after 24 hours.</p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>Take a break (self-exclusion)</h3>
+    <p class="muted">Pause deposits and play for a fixed period. A self-exclusion cannot be reversed early.</p>
+    <form method="post" action="{% url 'compliance:self_exclude' %}" data-confirm="Are you sure? This cannot be undone until the period ends.">
+      {% csrf_token %}
+      <div class="choice-grid" style="margin-bottom:16px">
+        {% for days, label in periods %}
+          <label class="choice-card"><input type="radio" name="days" value="{{ days }}" {% if forloop.first %}checked{% endif %}> {{ label }}</label>
+        {% endfor %}
+      </div>
+      <div class="form-field checkbox-field"><label><input type="checkbox" name="confirm" value="yes" required> <span>I understand I won't be able to deposit or play during this period.</span></label></div>
+      <button class="btn btn-danger" type="submit">Self-exclude</button>
+    </form>
+    <hr>
+    <p class="muted mb-0">Need to talk to someone? Support is free and confidential. Contact our support team any time for help with your account or to close it permanently.</p>
+  </section>
+</div>
+{% endblock %}

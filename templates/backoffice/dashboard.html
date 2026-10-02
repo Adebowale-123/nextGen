@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Back office{% endblock %}
+{% block content %}
+<div class="row between"><h1 class="mb-0">Back office</h1>
+  <form method="post" action="{% url 'backoffice:scheduler_tick' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">▶ Run draw scheduler now</button></form>
+</div>
+<p class="muted">{% now "l j F Y, g:i A" %} (Africa/Lagos)</p>
+{% include "backoffice/_nav.html" with active="dashboard" %}
+
+<h3>Work queues</h3>
+<div class="grid grid-4">
+  <a class="card kpi" href="{% url 'backoffice:spin_queue' %}" style="color:inherit"><div class="label">Games to spin</div><div class="value {% if queues.spins_pending %}neg{% endif %}">{{ queues.spins_pending }}</div></a>
+  <a class="card kpi" href="{% url 'admin:payments_withdrawal_changelist' %}?status__exact=pending_review" style="color:inherit"><div class="label">Withdrawals to review</div><div class="value {% if queues.withdrawals_review %}neg{% endif %}">{{ queues.withdrawals_review }}</div></a>
+  <a class="card kpi" href="{% url 'admin:accounts_kycsubmission_changelist' %}?status__exact=pending" style="color:inherit"><div class="label">KYC to review</div><div class="value {% if queues.kyc_pending %}neg{% endif %}">{{ queues.kyc_pending }}</div></a>
+  <a class="card kpi" href="{% url 'admin:compliance_riskflag_changelist' %}?resolved__exact=0" style="color:inherit"><div class="label">Open risk flags</div><div class="value">{{ queues.open_flags }}</div></a>
+  <a class="card kpi" href="{% url 'admin:payments_withdrawal_changelist' %}?status__exact=processing" style="color:inherit"><div class="label">Payouts stuck &gt; 1h</div><div class="value {% if queues.stuck_withdrawals %}neg{% endif %}">{{ queues.stuck_withdrawals }}</div></a>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+  <section class="card">
+    <h3>Today</h3>
+    {% include "backoffice/_summary.html" with s=today %}
+  </section>
+  <section class="card">
+    <h3>Last 7 days</h3>
+    {% include "backoffice/_summary.html" with s=week %}
+  </section>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+  <section class="card">
+    <h3>Fund segregation</h3>
+    <table>
+      <tr><td>Player wallets</td><td class="num">{{ segregation.player_cash|money }}</td></tr>
+      <tr><td>Stakes held in open draws</td><td class="num">{{ segregation.pool_hold|money }}</td></tr>
+      <tr><td>Withdrawals in flight</td><td class="num">{{ segregation.withdrawal_pending|money }}</td></tr>
+      <tr><th>Total owed to players</th><th class="num">{{ segregation.player_liability|money }}</th></tr>
+      <tr><td>Held at payment providers</td><td class="num">{{ segregation.provider_clearing|money }}</td></tr>
+      <tr><td>Operator gaming revenue</td><td class="num">{{ segregation.house_revenue|money }}</td></tr>
+    </table>
+    <p style="margin:12px 0 0">{% if segregation.coverage_ok %}<span class="badge badge-success">✓ Player funds fully covered</span>{% else %}<span class="badge badge-danger">✗ Player funds NOT covered — investigate</span>{% endif %}</p>
+  </section>
+  <section class="card">
+    <h3>Players</h3>
+    <div class="stat-row">
+      <div class="stat"><div class="label">Total</div><div class="value">{{ players.total }}</div></div>
+      <div class="stat"><div class="label">Tier 1</div><div class="value">{{ players.tier1 }}</div></div>
+      <div class="stat"><div class="label">Tier 2</div><div class="value">{{ players.tier2 }}</div></div>
+      <div class="stat"><div class="label">Flagged</div><div class="value">{{ queues.flagged_users }}</div></div>
+    </div>
+  </section>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+  <section class="card">
+    <h3>Upcoming draws</h3>
+    <ul class="list">
+      {% for d in upcoming %}
+        <li class="list-item"><div class="grow"><div class="title">{{ d }}</div><div class="sub">{{ d.ticket_count }} tickets · {{ d.total_stake|money }}</div></div>
+          <span class="countdown small" data-countdown="{{ d.closes_at.isoformat }}">--</span></li>
+      {% empty %}<li class="empty">No open draws.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="card">
+    <h3>Recent draws</h3>
+    <ul class="list">
+      {% for d in recent_draws %}
+        <li class="list-item"><div class="grow"><div class="title"><a href="{% url 'games:result_detail' d.pk %}">{{ d }}</a></div>
+          <div class="sub">{{ d.get_status_display }} · stake {{ d.total_stake|money }} · prizes {{ d.total_prizes|money }}</div></div></li>
+      {% empty %}<li class="empty">No completed draws yet.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

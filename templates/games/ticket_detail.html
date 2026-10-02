@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Ticket {{ ticket.serial }}{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<a href="{% url 'games:my_tickets' %}">← My tickets</a>
+<div class="card {% if ticket.status == 'won' %}lime{% endif %}" style="margin-top:12px">
+  <div class="row between">
+    <div><h2 class="mb-0">{{ ticket.draw }}</h2><small class="muted">{{ ticket.draw.closes_at|date:"l j F Y, g:i A" }}</small></div>
+    {% include "games/_ticket_status.html" %}
+  </div>
+  <div class="balls" style="margin:20px 0">
+    {% for n in ticket.numbers %}<span class="ball lg {% if n in winning %}hit{% endif %}">{{ n }}</span>{% endfor %}
+  </div>
+  {% if winning %}
+    <p class="mb-0">Winning numbers:</p>
+    <div class="balls" style="margin:8px 0 16px">{% for n in winning %}<span class="ball win">{{ n }}</span>{% endfor %}</div>
+    <p>Matched <b>{{ ticket.match_count|default:0 }}</b>{% if ticket.prize_amount %} — <b>{{ ticket.prize_label|default:ticket.prize_tier.name }}</b>, {{ ticket.prize_amount|money:ticket.draw.game.currency }} credited to your wallet{% elif ticket.draw.game.is_spin and ticket.match_count %} — matched, but the prize pool was used up by players with more matches this time{% endif %}.</p>
+  {% elif ticket.draw.game.is_spin %}
+    <div class="alert alert-info">The game closes at {{ ticket.draw.closes_at|date:"g:i A" }}. Winners are announced after the spin — we'll notify you if you win.</div>
+  {% endif %}
+  <dl class="kv">
+    <dt>Serial</dt><dd class="mono">{{ ticket.serial }}</dd>
+    <dt>Paid</dt><dd>{{ ticket.stake|money:ticket.draw.game.currency }}{% if ticket.bonus_stake %} ({{ ticket.bonus_stake|money:ticket.draw.game.currency }} from bonus){% endif %}</dd>
+    <dt>Purchased</dt><dd>{{ ticket.purchased_at|date:"j M Y, H:i:s" }}</dd>
+    <dt>Signature</dt><dd class="mono">{{ ticket.signature }}</dd>
+    <dt>Integrity</dt><dd>{% if signature_valid %}<span class="badge badge-success">✓ Signature valid — ticket unaltered</span>{% else %}<span class="badge badge-danger">✗ Signature mismatch — contact support</span>{% endif %}</dd>
+  </dl>
+  <div class="row" style="margin-top:16px">
+    {% if ticket.draw.status == 'open' and ticket.draw.game.is_spin %}<a class="btn btn-primary" href="{% url 'games:game_detail' ticket.draw.game.slug %}">Play again</a>
+    {% elif ticket.draw.status == 'open' %}<a class="btn btn-primary" href="{% url 'games:draw_detail' ticket.draw.pk %}">Buy more for this draw</a>
+    {% else %}<a class="btn btn-ghost" href="{% url 'games:result_detail' ticket.draw.pk %}">Draw result & verification</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

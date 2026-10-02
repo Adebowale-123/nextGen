@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}{{ game.name }}{% endblock %}
+{% block container_class %}narrow-wide{% endblock %}
+{% block content %}
+<a href="{% url 'games:lobby' %}">← All games</a>
+<div style="margin-top:12px">{% include "partials/game_card.html" %}</div>
+
+{% if my_tickets %}
+<section class="card" style="margin-top:20px">
+  <h3>Your numbers in this game</h3>
+  <ul class="list">
+    {% for t in my_tickets %}
+      <li class="list-item">
+        <div class="balls grow">{% for n in t.numbers %}<span class="ball">{{ n }}</span>{% endfor %}</div>
+        <a class="sub" href="{% url 'games:ticket_detail' t.serial %}">{{ t.serial }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card" style="margin-top:20px">
+  <h3>How it works</h3>
+  <ol class="steps" style="padding:0;margin:12px 0 0">
+    <li>Press <b>Play Game</b>. It costs {{ game.ticket_price|money:game.currency }} and you instantly get {{ game.pick_count }} numbers from 1–{{ game.number_max }}.</li>
+    <li>When the game closes, we spin {{ game.pick_count }} winning numbers.</li>
+    <li>Match all {{ game.pick_count }} to win the <b>grand prize of {{ game.grand_prize|money:game.currency }}</b>.</li>
+    <li>Players who match numbers win <b>{{ game.consolation_prize|money:game.currency }} consolation prizes</b>, best matches first, until the prize pool is used up.</li>
+  </ol>
+</section>
+
+<section class="card" style="margin-top:20px">
+  <h3>Game times (daily)</h3>
+  <ul class="list">
+    {% for opens_at, closes_at in schedule %}
+      <li class="list-item"><div class="grow">Game {{ forloop.counter }}</div><b>{{ opens_at|date:"g:i A" }} – {{ closes_at|date:"g:i A" }}</b></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<details class="card plain-details" style="margin-top:20px">
+  <summary>Prize rules in full</summary>
+  <ul style="margin:12px 0 0;padding-left:18px" class="muted">
+    <li>{{ game.prize_pool_percent }}% of each game's sales goes into the prize pool.</li>
+    <li>The grand prize of {{ game.grand_prize|money:game.currency }} is guaranteed for anyone matching all {{ game.pick_count }} numbers.</li>
+    <li>If nobody wins the grand prize, the whole pool goes to consolation winners.</li>
+    <li>When more players qualify than the pool can pay, those with more matches win first. Ties are decided by a random order fixed by the spin, which anyone can verify.</li>
+    <li>Prize money too small for another consolation prize is added to the next game's pool.</li>
+    <li>Winnings are paid straight into your wallet when the spin is done.</li>
+  </ul>
+</details>
+
+{% if recent_results %}
+<section class="card" style="margin-top:20px">
+  <div class="card-header"><h3>Recent results</h3><a href="{% url 'games:results' %}">All results</a></div>
+  <ul class="list">
+    {% for d in recent_results %}
+      <li class="list-item">
+        <a class="grow" href="{% url 'games:result_detail' d.pk %}" style="color:inherit;text-decoration:none">
+          <div class="sub">{{ d.closes_at|date:"D j M, g:i A" }}</div>
+          <div class="balls" style="margin-top:6px">{% for n in d.winning_numbers %}<span class="ball win">{{ n }}</span>{% endfor %}</div>
+        </a>
+        <span class="sub">{{ d.winner_count }} winner{{ d.winner_count|pluralize }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

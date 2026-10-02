@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Provably fair{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<h1>Provably fair draws</h1>
+<p class="muted">You don't have to take our word that a draw was random. Every draw can be independently checked.</p>
+
+<div class="card stack">
+  <ol class="steps" style="padding:0;margin:0">
+    <li><b>Commit.</b> When a draw opens we generate a secret 256-bit <i>server seed</i> and publish its SHA-256 hash. Once published, we can't change the seed without the hash changing.</li>
+    <li><b>Player entropy.</b> When sales close, a <i>client seed</i> is computed from the signatures of every ticket sold. It didn't exist when we committed, so we couldn't have picked a seed to suit it.</li>
+    <li><b>Draw.</b> Winning numbers come from <code>HMAC-SHA256(server_seed, "client_seed:nonce:round")</code>, read 4 bytes at a time with rejection sampling (no modulo bias), skipping repeats.</li>
+    <li><b>Reveal.</b> After the draw we publish the server seed. Anyone can hash it, compare it with the commitment, and recompute the numbers. Every results page has a one-click verifier that runs in your browser.</li>
+  </ol>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3>Your tickets are signed too</h3>
+  <p class="muted mb-0">Each ticket gets a unique serial and a cryptographic signature over your account, the draw, the purchase time and your numbers. If anything about a ticket were changed after purchase, the signature would no longer match — your ticket page shows the check.</p>
+</div>
+{% endblock %}

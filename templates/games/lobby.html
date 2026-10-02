@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Games{% endblock %}
+{% block content %}
+<h1>Games</h1>
+{% if spin_cards or draws %}
+  <div class="grid grid-2">
+    {% for card in spin_cards %}{% include "partials/game_card.html" %}{% endfor %}
+    {% for draw in draws %}{% include "partials/draw_card.html" %}{% endfor %}
+  </div>
+{% else %}
+  <div class="card empty">No games available right now.</div>
+{% endif %}
+{% endblock %}

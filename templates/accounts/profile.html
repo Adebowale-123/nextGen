@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<h1>Account</h1>
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-header"><h3>Verification level</h3>
+      {% if user.kyc_tier == 2 %}<span class="badge badge-success">Tier 2 · Verified</span>
+      {% else %}<span class="badge badge-warning">Tier 1 · Basic</span>{% endif %}
+    </div>
+    <ul class="list">
+      <li class="list-item"><div class="grow"><div class="title">Contact verified</div><div class="sub">{{ user.phone|default:user.email }}</div></div><span class="badge badge-success">✓</span></li>
+      <li class="list-item"><div class="grow"><div class="title">Deposits & low-stake play</div><div class="sub">Available on Tier 1</div></div><span class="badge badge-success">✓</span></li>
+      <li class="list-item"><div class="grow"><div class="title">Withdrawals & higher stakes</div><div class="sub">Requires Tier 2 ID verification</div></div>
+        {% if user.kyc_tier == 2 %}<span class="badge badge-success">✓</span>{% else %}<a class="btn btn-accent btn-sm" href="{% url 'accounts:kyc' %}">Verify ID</a>{% endif %}
+      </li>
+    </ul>
+    {% if submissions %}
+      <hr>
+      <h4>Verification history</h4>
+      <ul class="list">
+        {% for s in submissions %}
+          <li class="list-item"><div class="grow"><div class="title">{{ s.get_id_type_display }}</div><div class="sub">{{ s.masked_id_number }} · {{ s.created_at|date:"j M Y" }}{% if s.rejection_reason %} · {{ s.rejection_reason }}{% endif %}</div></div>
+            <span class="badge {% if s.status == 'approved' %}badge-success{% elif s.status == 'rejected' %}badge-danger{% else %}badge-warning{% endif %}">{{ s.get_status_display }}</span></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h3>Personal details</h3>
+    {% if locked %}<p class="muted">Your details are locked because your identity has been verified. Contact support to change them.</p>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      {% include "partials/form.html" %}
+      {% if not locked %}<button class="btn btn-primary" type="submit">Save</button>{% endif %}
+    </form>
+    <hr>
+    <div class="row">
+      <a class="btn btn-ghost" href="{% url 'compliance:settings' %}">Responsible gaming</a>
+      <a class="btn btn-ghost" href="{% url 'notifications:inbox' %}">Notifications</a>
+      {% if user.is_staff %}<a class="btn btn-ghost" href="{% url 'backoffice:dashboard' %}">Back office</a>{% endif %}
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="btn btn-danger" type="submit">Log out</button></form>
+    </div>
+  </section>
+</div>
+{% endblock %}

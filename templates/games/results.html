@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Results{% endblock %}
+{% block content %}
+<h1>Results</h1>
+<div class="card">
+  {% if page.object_list %}
+    <ul class="list">
+      {% for draw in page %}
+        <li class="list-item">
+          <div class="grow">
+            <div class="title"><a href="{% url 'games:result_detail' draw.pk %}">{{ draw }}</a> <span class="sub">· {{ draw.closes_at|date:"D j M Y, g:i A" }}</span></div>
+            {% if draw.status == 'cancelled' %}
+              <div class="sub">Cancelled — all tickets refunded.</div>
+            {% else %}
+              <div class="balls" style="margin-top:8px">{% for n in draw.winning_numbers %}<span class="ball win">{{ n }}</span>{% endfor %}</div>
+            {% endif %}
+          </div>
+          <div class="right">
+            {% if draw.status == 'settled' %}<div class="sub">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }}</div><div class="amount">{{ draw.total_prizes|money:draw.game.currency }}</div>
+            {% elif draw.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
+            {% else %}<span class="badge badge-warning">Settling…</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% include "partials/pagination.html" %}
+  {% else %}
+    <div class="empty">No draws have completed yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

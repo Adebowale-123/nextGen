@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{# Always light: drop Django's dark-mode stylesheet and theme switcher. #}
+{% block dark-mode-vars %}{% endblock %}
+
+{% block extrastyle %}
+<style>
+  :root {
+    color-scheme: light;
+    --primary: #1a73e8;
+    --secondary: #1557b0;
+    --accent: #e8f2fe;
+    --header-color: #e8f2fe;
+    --header-branding-color: #ffffff;
+    --header-bg: #1a73e8;
+    --header-link-color: #ffffff;
+    --breadcrumbs-bg: #e8f2fe;
+    --breadcrumbs-fg: #1557b0;
+    --breadcrumbs-link-fg: #1a73e8;
+    --link-fg: #1a73e8;
+    --link-hover-color: #1557b0;
+    --link-selected-fg: #1557b0;
+    --button-bg: #1a73e8;
+    --button-hover-bg: #1557b0;
+    --default-button-bg: #1557b0;
+    --default-button-hover-bg: #0f4a99;
+    --selected-row: #e8f2fe;
+    --font-family-primary: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  #header { background: #1a73e8; }
+  .theme-toggle { display: none !important; }
+  table.mini { border-collapse: collapse; margin-top: 6px; }
+  table.mini th, table.mini td { padding: 4px 10px; border-bottom: 1px solid #e3ecf7; text-align: left; font-size: 13px; }
+  table.mini th { background: #f3f8fe; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

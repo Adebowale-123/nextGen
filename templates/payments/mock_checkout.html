@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Sandbox checkout{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<div class="alert alert-warning"><b>Sandbox mode.</b> No real money moves. This page stands in for Paystack / Flutterwave checkout.</div>
+<div class="card center">
+  <small class="muted">Pay NextGen Game</small>
+  <div class="balance-amount">{{ deposit.amount|money:deposit.currency }}</div>
+  <p class="muted">Channel: {{ deposit.get_channel_display }}</p>
+  {% if deposit.status == 'pending' %}
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <button class="btn btn-accent btn-block btn-lg" name="outcome" value="success">Simulate successful payment</button>
+      <button class="btn btn-danger btn-block" name="outcome" value="failed">Simulate declined payment</button>
+    </form>
+  {% else %}
+    <p>This payment is already {{ deposit.get_status_display|lower }}.</p>
+    <a class="btn btn-ghost" href="{% url 'payments:wallet' %}">Back to wallet</a>
+  {% endif %}
+  <p class="faint mono" style="margin-top:14px">{{ deposit.reference }}</p>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}{{ draw }} result{% endblock %}
+{% block container_class %}narrow-wide{% endblock %}
+{% block content %}
+<a href="{% url 'games:results' %}">← All results</a>
+<h1 style="margin-top:12px">{{ draw.game.name }} <small class="muted">#{{ draw.draw_number }}</small></h1>
+<p class="muted">{{ draw.closes_at|date:"l j F Y, g:i A" }}</p>
+
+{% if draw.status == 'cancelled' %}
+  <div class="alert alert-warning">This draw was cancelled. All tickets were refunded.</div>
+{% elif draw.status == 'locked' or draw.status == 'open' %}
+  <div class="card empty">{% if draw.status == 'locked' %}This game is closed. Winners will be announced after the spin.{% else %}This game is still open.{% endif %}</div>
+{% else %}
+<section class="card center">
+  <div class="countdown-label">Winning numbers</div>
+  <div class="balls" style="justify-content:center;margin:14px 0">{% for n in draw.winning_numbers %}<span class="ball lg win">{{ n }}</span>{% endfor %}</div>
+  <p class="muted mb-0">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }} · {{ draw.total_prizes|money:draw.game.currency }} paid</p>
+  {% if draw.game.is_spin %}
+  <div class="stat-row" style="margin-top:16px;text-align:left">
+    <div class="stat"><div class="label">Players</div><div class="value">{{ draw.ticket_count }}</div></div>
+    <div class="stat"><div class="label">Prize pool</div><div class="value">{{ draw.prize_pool|money:draw.game.currency }}</div></div>
+    <div class="stat"><div class="label">Grand prize winners</div><div class="value">{{ draw.grand_winner_count }}</div></div>
+    <div class="stat"><div class="label">Consolation winners</div><div class="value">{{ draw.consolation_winner_count }}</div></div>
+  </div>
+  {% if draw.carry_out %}<p class="faint" style="margin:10px 0 0">{{ draw.carry_out|money:draw.game.currency }} carried into the next game's prize pool.</p>{% endif %}
+  {% endif %}
+</section>
+
+{% if my_tickets %}
+<section class="card" style="margin-top:20px">
+  <h3>Your tickets</h3>
+  <ul class="list">
+    {% for t in my_tickets %}
+      <li class="list-item">
+        <div class="balls grow">{% for n in t.numbers %}<span class="ball {% if n in draw.winning_numbers %}hit{% endif %}">{{ n }}</span>{% endfor %}</div>
+        {% include "games/_ticket_status.html" with ticket=t %}
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<details class="card plain-details" style="margin-top:20px">
+  <summary>Check this draw was fair</summary>
+  <p class="muted" style="margin-top:10px">Before sales opened we published a code (hash). Press verify and your browser re-calculates the numbers from it. <a href="{% url 'core:fairness' %}">Learn more</a></p>
+  <form data-verifier>
+    <dl class="kv">
+      <dt>Published hash</dt><dd><input type="text" name="server_seed_hash" value="{{ draw.server_seed_hash }}" class="mono"></dd>
+      <dt>Server seed</dt><dd><input type="text" name="server_seed" value="{{ draw.public_server_seed }}" class="mono"></dd>
+      <dt>Client seed</dt><dd><input type="text" name="client_seed" value="{{ draw.client_seed }}" class="mono"></dd>
+      <dt>Nonce</dt><dd><input type="text" name="nonce" value="{{ draw.nonce }}" class="mono"></dd>
+    </dl>
+    <input type="hidden" name="pick" value="{{ draw.game.pick_count }}">
+    <input type="hidden" name="max" value="{{ draw.game.number_max }}">
+    <input type="hidden" name="expected" value="{{ draw.winning_numbers|join:',' }}">
+    <button class="btn btn-primary" type="submit" style="margin-top:12px">Verify</button>
+    <div class="alert alert-info" data-verify-output hidden style="margin-top:16px"></div>
+  </form>
+</details>
+{% endif %}
+{% endblock %}

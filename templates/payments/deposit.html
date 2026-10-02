@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Deposit{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<div class="row between"><h1 class="mb-0">Deposit</h1><a href="{% url 'payments:wallet' %}">← Wallet</a></div>
+<p class="muted">Balance: <b>{{ wallet.account.balance|money:wallet.currency }}</b> · Today: {{ deposited_today|money }} of {{ deposit_limit|money }}</p>
+<form method="post" class="card">
+  {% csrf_token %}
+  {% include "partials/form_field.html" with field=form.amount %}
+  <div class="chips" style="margin:-4px 0 18px">
+    {% for a in quick_amounts %}<button type="button" class="chip" data-amount="{{ a|major }}">{{ a|money }}</button>{% endfor %}
+  </div>
+  <div class="form-field">
+    <span class="label">Pay with</span>
+    <div class="choice-grid">{% for radio in form.channel %}<div>{{ radio }}</div>{% endfor %}</div>
+    {{ form.channel.errors }}
+  </div>
+  {% include "partials/form_field.html" with field=form.provider %}
+  <button class="btn btn-accent btn-block btn-lg" type="submit">Continue to secure checkout</button>
+  <p class="faint center" style="margin:12px 0 0;font-size:.85rem">You'll be redirected to our payment partner. Your wallet is credited once they confirm the payment.</p>
+</form>
+{% endblock %}

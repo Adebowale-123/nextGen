@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Verify your identity (KYC){% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+<h1>Verify your identity</h1>
+<p class="muted">Enter your ID and the bank account you'll withdraw to. We check both automatically: <b>the name on your ID must match the name on your bank account.</b></p>
+{% if pending %}
+  <div class="alert alert-info">Your {{ pending.get_id_type_display }} submitted {{ pending.created_at|date:"j M, g:i A" }} is being checked by our team. We'll notify you when it's done.</div>
+{% else %}
+  {% if last_failed %}
+    <div class="alert alert-error"><b>Last attempt failed:</b> {{ last_failed.rejection_reason }}.</div>
+  {% endif %}
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% include "partials/form.html" %}
+      <button class="btn btn-primary btn-block btn-lg" type="submit">Verify now</button>
+      <p class="faint" style="font-size:.85rem;margin:12px 0 0">Your details are sent securely to our verification partner and your bank, and are only used to confirm who you are.</p>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

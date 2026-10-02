@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load nextgen %}
+{% block title %}Financial report{% endblock %}
+{% block content %}
+<h1>Financial report</h1>
+{% include "backoffice/_nav.html" with active="report" %}
+<form method="get" class="card row" style="align-items:flex-end">
+  <div><label class="label" for="start">From</label><input id="start" type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
+  <div><label class="label" for="end">To</label><input id="end" type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+  <button class="btn btn-primary" type="submit">Update</button>
+  <a class="btn btn-ghost" href="?start={{ start|date:'Y-m-d' }}&end={{ end|date:'Y-m-d' }}&format=csv">Download CSV</a>
+</form>
+
+<section class="card" style="margin-top:16px">
+  <h3>Period summary · {{ start|date:"j M Y" }} – {{ end|date:"j M Y" }}</h3>
+  {% include "backoffice/_summary.html" with s=summary %}
+</section>
+
+<section class="card" style="margin-top:16px">
+  <h3>Daily breakdown</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th class="num">Deposits</th><th class="num">Withdrawals</th><th class="num">Ticket sales</th><th class="num">Prizes</th><th class="num">Net (sales − prizes)</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+          <tr><td>{{ r.day|date:"D j M" }}</td><td class="num">{{ r.deposits|money }}</td><td class="num">{{ r.withdrawals|money }}</td>
+            <td class="num">{{ r.stakes|money }}</td><td class="num">{{ r.prizes|money }}</td>
+            <td class="num {% if r.net < 0 %}neg{% elif r.net > 0 %}pos{% endif %}">{{ r.net|money }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="faint" style="font-size:.8rem;margin:10px 0 0">Ticket sales are booked on purchase date; prizes on settlement date. Use the period GGR above for settled-draw revenue.</p>
+</section>
+{% endblock %}

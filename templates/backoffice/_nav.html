@@ -1,0 +1,11 @@
+<nav class="bo-nav">
+  <a class="btn btn-sm {% if active == 'dashboard' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'backoffice:dashboard' %}">Dashboard</a>
+  <a class="btn btn-sm {% if active == 'spin' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'backoffice:spin_queue' %}">🎡 Spin</a>
+  <a class="btn btn-sm {% if active == 'report' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'backoffice:report' %}">Financial report</a>
+  <a class="btn btn-sm {% if active == 'ledger' %}btn-primary{% else %}btn-ghost{% endif %}" href="{% url 'backoffice:ledger' %}">Ledger</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'admin:payments_withdrawal_changelist' %}?status__exact=pending_review">Withdrawal reviews</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'admin:accounts_kycsubmission_changelist' %}?status__exact=pending">KYC reviews</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'admin:compliance_riskflag_changelist' %}?resolved__exact=0">Risk flags</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'admin:games_draw_changelist' %}">Draws</a>
+  <a class="btn btn-sm btn-ghost" href="{% url 'admin:index' %}">Admin</a>
+</nav>
