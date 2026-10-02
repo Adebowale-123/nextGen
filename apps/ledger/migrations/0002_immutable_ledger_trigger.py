@@ -27,12 +27,13 @@ DROP FUNCTION IF EXISTS ledger_reject_mutation();
 
 def forwards(apps, schema_editor):
     if schema_editor.connection.vendor == "postgresql":
-        schema_editor.execute(CREATE)
+        # params=None: send the SQL as-is, so psycopg doesn't read the '%' in RAISE as placeholders.
+        schema_editor.execute(CREATE, params=None)
 
 
 def backwards(apps, schema_editor):
     if schema_editor.connection.vendor == "postgresql":
-        schema_editor.execute(DROP)
+        schema_editor.execute(DROP, params=None)
 
 
 class Migration(migrations.Migration):

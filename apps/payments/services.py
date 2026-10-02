@@ -174,7 +174,7 @@ def handle_webhook(provider_code, request) -> WebhookEvent:
         return event
 
     parsed = provider.parse_webhook(payload)
-    event.event, event.reference = parsed.event, parsed.reference
+    event.event, event.reference = parsed.event[:60], parsed.reference[:100]
     try:
         if parsed.kind == "charge" and Deposit.objects.filter(reference=parsed.reference).exists():
             reconcile_deposit(parsed.reference)

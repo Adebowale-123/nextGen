@@ -127,7 +127,7 @@ class OneTimePassword(models.Model):
     channel = models.CharField(max_length=8, choices=Channel.choices)
     destination = models.CharField(max_length=255)
     purpose = models.CharField(max_length=32, choices=Purpose.choices)
-    code_hash = models.CharField(max_length=64)
+    code_hash = models.CharField(max_length=100)  # "salt$sha256-hex"
     attempts = models.PositiveSmallIntegerField(default=0)
     expires_at = models.DateTimeField()
     consumed_at = models.DateTimeField(null=True, blank=True)
