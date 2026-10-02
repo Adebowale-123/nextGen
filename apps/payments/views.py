@@ -12,6 +12,7 @@ from apps.compliance import services as compliance
 from apps.core.config import RULES
 from apps.core.decorators import verified_required
 from apps.ledger.models import Entry, JournalTransaction
+from apps.ledger.services import get_wallet
 
 from . import services
 from .forms import DepositForm, PayoutAccountForm, WithdrawForm
@@ -29,7 +30,7 @@ HISTORY_FILTERS = {
 
 
 def _wallet(user):
-    return user.wallets.select_related("account").get(currency=RULES["DEFAULT_CURRENCY"])
+    return get_wallet(user, RULES["DEFAULT_CURRENCY"])
 
 
 @verified_required

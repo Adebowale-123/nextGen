@@ -57,3 +57,28 @@ class RequestDrivenSchedulerTests(TestCase):
     def test_scheduler_error_does_not_break_pages(self):
         with mock.patch("apps.games.services.run_scheduler_tick", side_effect=RuntimeError("boom")):
             self.assertEqual(self.client.get("/healthz/").status_code, 200)
+
+
+class AdminAccountPagesTests(TestCase):
+    """Regression: an admin created outside sign-up had no wallet and the home page crashed (500)."""
+
+    def test_new_superuser_gets_a_wallet(self):
+        from apps.accounts.models import User
+
+        admin = User.objects.create_superuser("owner@example.com", "Owner-pass-123")
+        self.assertEqual(admin.wallets.count(), 1)
+
+    def test_old_account_without_wallet_can_browse(self):
+        from apps.accounts.models import User
+        from apps.ledger.models import LedgerAccount, Wallet
+
+        admin = User.objects.create_superuser("legacy@example.com", "Legacy-pass-123")
+        wallet = admin.wallets.get()
+        accounts = [wallet.account_id, wallet.bonus_account_id]
+        Wallet.objects.filter(pk=wallet.pk).delete()  # simulate an account created before the fix
+        LedgerAccount.objects.filter(pk__in=accounts).delete()
+        self.client.force_login(admin)
+        for url in ("/", "/accounts/register/", "/wallet/", "/wallet/deposit/", "/play/"):
+            with self.subTest(url):
+                self.assertEqual(self.client.get(url, follow=True).status_code, 200)
+        self.assertEqual(admin.wallets.count(), 1)

@@ -19,7 +19,7 @@ def to_major(minor: int) -> Decimal:
 
 
 def format_money(minor, currency="NGN") -> str:
-    if minor is None:
+    if minor is None or minor == "":
         return "—"
     symbol = CURRENCY_SYMBOLS.get(currency, f"{currency} ")
     sign = "-" if minor < 0 else ""

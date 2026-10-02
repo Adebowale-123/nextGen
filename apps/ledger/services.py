@@ -92,12 +92,19 @@ def ensure_bonus_account(wallet) -> LedgerAccount:
     return account
 
 
+def get_wallet(user, currency) -> Wallet:
+    """The user's wallet, created on first use (e.g. for admin accounts made outside sign-up)."""
+    wallet = Wallet.objects.select_related("account", "bonus_account").filter(user=user, currency=currency).first()
+    return wallet or create_wallet(user, currency)
+
+
 def lock_wallet(user, currency) -> Wallet:
     """Row-lock a wallet (and its ledger account) for the current transaction.
 
     This is the double-spend guard: concurrent purchases/withdrawals for the
     same wallet serialise on this lock. Must be called inside atomic().
     """
+    get_wallet(user, currency)  # make sure it exists before locking
     wallet = Wallet.objects.select_for_update().select_related("account").get(user=user, currency=currency)
     # Lock the account row too and refresh the balance we read.
     wallet.account = LedgerAccount.objects.select_for_update().get(pk=wallet.account_id)
