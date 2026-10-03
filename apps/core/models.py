@@ -24,6 +24,7 @@ PLAIN_RULES = {
     "limit_increase_cooldown_hours": "LIMIT_INCREASE_COOLDOWN_HOURS",
     "auto_spin_after_minutes": "AUTO_SPIN_AFTER_MINUTES",
     "kyc_require_bank_name_match": "KYC_REQUIRE_BANK_NAME_MATCH",
+    "coin_packages": "COIN_PACKAGES",
 }
 
 
@@ -37,11 +38,15 @@ class PlatformSettings(models.Model):
     # Coins
     coin_value = naira(default=Decimal("10.00"),
                        help_text="Naira value of 1 coin. Players buy, play, win and cash out in coins at this rate.")
+    coin_packages = models.CharField(
+        max_length=120, default="100,300,500,1000,2000,5000",
+        help_text="Coin packages on the Buy coins page, comma-separated (e.g. 100,300,500,1000).",
+    )
     # Promotions
     welcome_bonus = naira(help_text="Bonus credited to every new verified player (₦). Play-only. 0 = off.")
     # Deposits
-    min_deposit = naira(help_text="Smallest deposit allowed (₦).")
-    max_deposit = naira(help_text="Largest single deposit (₦).")
+    min_deposit = naira(verbose_name="Minimum coin purchase (₦)", help_text="Smallest coin purchase, in naira.")
+    max_deposit = naira(verbose_name="Maximum coin purchase (₦)", help_text="Largest single coin purchase, in naira.")
     tier1_daily_deposit_limit = naira(help_text="Daily deposit cap before ID verification (₦).")
     default_daily_deposit_limit = naira(help_text="Daily deposit cap for verified players (₦).")
     # Play

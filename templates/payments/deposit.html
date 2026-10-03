@@ -1,29 +1,40 @@
 {% extends "base.html" %}
-{% load nextgen %}
+{% load humanize static nextgen %}
 {% block title %}Buy coins{% endblock %}
 {% block container_class %}narrow{% endblock %}
 {% block content %}
 <div class="row between"><h1 class="mb-0">Buy coins</h1><a href="{% url 'payments:wallet' %}">← Wallet</a></div>
-<p class="muted">You have <b>{{ wallet.account.balance|coins }}</b> · 1 coin = {% coin_value_naira %}</p>
-<form method="post" class="card" data-coin-form data-coin-value="{{ coin_value }}">
+<p class="muted">You have <b>{{ wallet.coin_balance|coins }}</b>. Coins are used to play games.</p>
+
+{% if form.errors %}<div class="alert alert-error">{% for errors in form.errors.values %}{{ errors|join:" " }} {% endfor %}</div>{% endif %}
+
+<div class="coin-packages">
+  {% for coins, minor in packages %}
+    <form method="post" class="coin-package">
+      {% csrf_token %}
+      <input type="hidden" name="amount" value="{{ coins }}">
+      <input type="hidden" name="provider" value="{{ form.provider.value }}">
+      <div class="coin-art">
+        <img src="{% static 'img/coins.svg' %}" alt="" width="150" height="128">
+        <span class="coin-count">{{ coins|intcomma }}</span>
+      </div>
+      <button class="price-pill" type="submit">{{ minor|money }}</button>
+    </form>
+  {% endfor %}
+</div>
+
+<form method="post" class="custom-coins" data-coin-form data-coin-value="{{ coin_value }}">
   {% csrf_token %}
-  <span class="label">Choose a package</span>
-  <div class="package-grid">
-    {% for coins, minor in packages %}
-      <button type="button" class="package" data-amount="{{ coins }}">
-        <b>{{ coins }}</b><span>coins</span><small>{{ minor|money }}</small>
-      </button>
-    {% endfor %}
+  <input type="hidden" name="provider" value="{{ form.provider.value }}">
+  <h3>Enter coin quantity</h3>
+  <p class="muted">1 coin = {% coin_value_naira %} · Min {{ min_coins }} coins · Max {{ max_coins|floatformat:"0g" }} coins</p>
+  <div class="custom-row">
+    <input type="number" name="amount" id="id_amount" min="{{ min_coins }}" max="{{ max_coins }}" step="1"
+           inputmode="numeric" placeholder="e.g. 100" value="{{ form.amount.value|default_if_none:'' }}" required>
+    <button class="btn btn-primary" type="submit">Buy</button>
   </div>
-  {% include "partials/form_field.html" with field=form.amount %}
-  <p class="center" style="margin:-6px 0 16px">You pay <b data-naira-total>₦0.00</b></p>
-  <div class="form-field">
-    <span class="label">Pay with</span>
-    <div class="choice-grid">{% for radio in form.channel %}<div>{{ radio }}</div>{% endfor %}</div>
-    {{ form.channel.errors }}
-  </div>
-  {% include "partials/form_field.html" with field=form.provider %}
-  <button class="btn btn-primary btn-block btn-lg" type="submit">Continue to payment</button>
-  <p class="faint center" style="margin:12px 0 0;font-size:.85rem">Bought today: {{ deposited_today|coins }} of your {{ deposit_limit|coins }} daily limit. Coins are added as soon as payment is confirmed.</p>
+  <p class="muted" style="margin:10px 0 0">You pay <b data-naira-total>₦0.00</b></p>
 </form>
+
+<p class="faint center" style="margin-top:16px;font-size:.85rem">You'll choose card, bank transfer or USSD on the secure payment page. Bought today: {{ deposited_today|coins }} of your {{ deposit_limit|coins }} daily limit.</p>
 {% endblock %}

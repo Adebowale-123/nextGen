@@ -20,7 +20,6 @@ SPIN_GAMES = [
         "prize_pool_percent": 60,
         "grand_prize": 100_000_00,
         "consolation_prize": 7_000_00,
-        "consolation_min_match": 1,
         "max_lines_per_purchase": 1,
         "max_tickets_per_draw": 50,
         "is_active": True,

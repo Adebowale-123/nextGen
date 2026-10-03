@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.core.tests.helpers import balance, make_game, make_open_draw, make_user
+from apps.core.tests.helpers import balance, coins, make_game, make_open_draw, make_user
 from apps.games import rng, services
 from apps.games.models import Draw, Ticket
 from apps.ledger.models import LedgerAccount
@@ -46,7 +46,7 @@ class PurchaseTests(TestCase):
     def test_purchase_debits_wallet_and_signs_tickets(self):
         tickets = services.purchase_tickets(self.user, self.draw.pk, [[1, 2, 3, 4, 5], [30, 29, 28, 27, 26]])
         self.assertEqual(len(tickets), 2)
-        self.assertEqual(balance(self.user), 10_000_00 - 200_00)
+        self.assertEqual(coins(self.user), 10_000_00 - 200_00)
         self.assertEqual(tickets[1].numbers, [26, 27, 28, 29, 30])
         for t in Ticket.objects.select_related("user"):
             self.assertTrue(rng.verify_ticket(t))
@@ -61,23 +61,18 @@ class PurchaseTests(TestCase):
         ticket.numbers = [1, 2, 3, 4, 6]
         self.assertFalse(rng.verify_ticket(ticket))
 
-    def test_purchase_reduces_wagering_requirement(self):
-        self.user.wallets.update(wagering_remaining=150_00)
-        services.purchase_tickets(self.user, self.draw.pk, [[1, 2, 3, 4, 5]])
-        self.assertEqual(self.user.wallets.get().wagering_remaining, 50_00)
-
     def test_insufficient_balance_prompts_deposit(self):
         poor = make_user(balance=50_00)
         with self.assertRaises(services.NeedsDeposit) as ctx:
             services.purchase_tickets(poor, self.draw.pk, [[1, 2, 3, 4, 5]])
         self.assertEqual(ctx.exception.shortfall, 50_00)
-        self.assertEqual(balance(poor), 50_00)
+        self.assertEqual(coins(poor), 50_00)
 
     def test_invalid_lines_rejected(self):
         for bad in ([1, 2, 3, 4], [1, 1, 2, 3, 4], [0, 1, 2, 3, 4], [1, 2, 3, 4, 31]):
             with self.assertRaises(services.GameError):
                 services.purchase_tickets(self.user, self.draw.pk, [bad])
-        self.assertEqual(balance(self.user), 10_000_00)
+        self.assertEqual(coins(self.user), 10_000_00)
 
     def test_closed_draw_rejected(self):
         Draw.objects.filter(pk=self.draw.pk).update(closes_at=timezone.now() - timedelta(seconds=1))
@@ -94,7 +89,7 @@ class PurchaseTests(TestCase):
         services.purchase_tickets(self.user, self.draw.pk, [[1, 2, 3, 4, 5]], idempotency_key="abc")
         services.purchase_tickets(self.user, self.draw.pk, [[1, 2, 3, 4, 5]], idempotency_key="abc")
         self.assertEqual(Ticket.objects.count(), 1)
-        self.assertEqual(balance(self.user), 10_000_00 - 100_00)
+        self.assertEqual(coins(self.user), 10_000_00 - 100_00)
 
     def test_unverified_user_cannot_play(self):
         user = make_user(tier=User.KycTier.UNVERIFIED, balance=1_000_00)
@@ -127,9 +122,10 @@ class DrawLifecycleTests(TestCase):
         self.assertTrue(self.draw.client_seed)
 
         # Pool = 4 tickets x 100 = 400. Jackpot 50% = 200 split by 2 = 100 each. Match 3 = 10 x 100 = 1000.
-        self.assertEqual(balance(self.alice), 5_000_00 - 100_00 + 100_00)
-        self.assertEqual(balance(self.bob), 5_000_00 - 100_00 + 100_00)
-        self.assertEqual(balance(self.carol), 5_000_00 - 200_00 + 1_000_00)
+        # Tickets were paid with coins; prizes land in withdrawable winnings.
+        self.assertEqual((coins(self.alice), balance(self.alice)), (5_000_00 - 100_00, 100_00))
+        self.assertEqual(balance(self.bob), 100_00)
+        self.assertEqual((coins(self.carol), balance(self.carol)), (5_000_00 - 200_00, 1_000_00))
         self.assertEqual(self.draw.total_prizes, 1_200_00)
         self.assertEqual(self.draw.winner_count, 3)
 
@@ -171,8 +167,8 @@ class DrawLifecycleTests(TestCase):
 
     def test_cancel_refunds_everyone(self):
         services.cancel_draw(self.draw.pk, "Technical issue")
-        self.assertEqual(balance(self.alice), 5_000_00)
-        self.assertEqual(balance(self.carol), 5_000_00)
+        self.assertEqual(coins(self.alice), 5_000_00)  # refunded as coins
+        self.assertEqual(coins(self.carol), 5_000_00)
         self.assertFalse(Ticket.objects.exclude(status=Ticket.Status.REFUNDED).exists())
         self.assertEqual(services.pool_account(self.draw).balance, 0)
         self.assertEqual(verify_ledger_integrity(), [])

@@ -13,7 +13,7 @@ from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
 
 from apps.core.admin_utils import reason_action
-from apps.core.money import format_money
+from apps.core.money import format_coins, format_money
 
 from . import services
 from .models import KycSubmission, User
@@ -81,8 +81,8 @@ class UserAdmin(DjangoUserAdmin):
     add_fieldsets = ((None, {"classes": ("wide",),
                              "fields": ("email", "first_name", "last_name", "password1", "password2")}),)
     ordering = ("-date_joined",)
-    list_display = ("__str__", "full_name", "phone", "kyc_badge", "status", "is_flagged", "wallet_balance",
-                    "games_played", "date_joined")
+    list_display = ("full_name", "__str__", "kyc_badge", "coins_balance", "wallet_balance", "games_played",
+                    "status", "date_joined")
     list_filter = (KycStatusFilter, "status", "is_flagged", "is_staff", "email_verified", "phone_verified")
     search_fields = ("email", "phone", "first_name", "last_name", "public_id", "payout_accounts__account_number")
     readonly_fields = ("public_id", "date_joined", "last_login", "wallet_summary", "games_summary",
@@ -124,10 +124,15 @@ class UserAdmin(DjangoUserAdmin):
             return "— Not started"
         return {"pending": "⏳ Checking", "rejected": "❌ Failed"}.get(latest.status, latest.get_status_display())
 
-    @admin.display(description="Balance")
+    @admin.display(description="Winnings")
     def wallet_balance(self, obj):
         wallet = obj.wallets.select_related("account").first()
         return format_money(wallet.balance, wallet.currency) if wallet else "—"
+
+    @admin.display(description="Coins")
+    def coins_balance(self, obj):
+        wallet = obj.wallets.select_related("coin_account", "bonus_account").first()
+        return format_coins(wallet.coin_balance) if wallet else "—"
 
     @admin.display(description="Games", ordering="n_tickets")
     def games_played(self, obj):

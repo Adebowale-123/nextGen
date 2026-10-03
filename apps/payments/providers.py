@@ -101,7 +101,7 @@ class BaseProvider:
 class MockProvider(BaseProvider):
     code = "mock"
     label = "Sandbox gateway"
-    channels = ["card", "bank_transfer", "ussd", "mobile_money"]
+    channels = ["any", "card", "bank_transfer", "ussd", "mobile_money"]
     SIGNATURE_HEADER = "HTTP_X_MOCK_SIGNATURE"
 
     @staticmethod
@@ -161,7 +161,7 @@ class MockProvider(BaseProvider):
 class PaystackProvider(BaseProvider):
     code = "paystack"
     label = "Paystack"
-    channels = ["card", "bank_transfer", "ussd", "mobile_money"]
+    channels = ["any", "card", "bank_transfer", "ussd", "mobile_money"]
     BASE = "https://api.paystack.co"
     CHANNEL_MAP = {"card": "card", "bank_transfer": "bank_transfer", "ussd": "ussd", "mobile_money": "mobile_money"}
 
@@ -185,7 +185,7 @@ class PaystackProvider(BaseProvider):
             "currency": deposit.currency,
             "reference": deposit.reference,
             "callback_url": callback_url,
-            "channels": [self.CHANNEL_MAP[deposit.channel]],
+            **({} if deposit.channel == "any" else {"channels": [self.CHANNEL_MAP[deposit.channel]]}),
             "metadata": {"phone": phone, "name": name},
         })
         return data["data"]["authorization_url"], data["data"].get("access_code", ""), data["data"]
@@ -257,7 +257,7 @@ class PaystackProvider(BaseProvider):
 class FlutterwaveProvider(BaseProvider):
     code = "flutterwave"
     label = "Flutterwave"
-    channels = ["card", "bank_transfer", "ussd", "mobile_money"]
+    channels = ["any", "card", "bank_transfer", "ussd", "mobile_money"]
     BASE = "https://api.flutterwave.com/v3"
     # Confirm "opay" is enabled on your Flutterwave account for mobile-money wallets.
     CHANNEL_MAP = {"card": "card", "bank_transfer": "banktransfer", "ussd": "ussd", "mobile_money": "opay"}
@@ -281,7 +281,7 @@ class FlutterwaveProvider(BaseProvider):
             "amount": str(to_major(deposit.amount)),  # Flutterwave uses major units
             "currency": deposit.currency,
             "redirect_url": callback_url,
-            "payment_options": self.CHANNEL_MAP[deposit.channel],
+            "payment_options": "card,banktransfer,ussd" if deposit.channel == "any" else self.CHANNEL_MAP[deposit.channel],
             "customer": {"email": email, "phonenumber": phone or "", "name": name},
             "customizations": {"title": settings.NEXTGEN["BRAND_NAME"]},
         })

@@ -12,16 +12,14 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
 
     readonly_fields = ("updated_at", "updated_by")
     fieldsets = (
-        ("Coins", {"fields": ("coin_value",)}),
+        ("Coins", {"fields": ("coin_value", "coin_packages", "min_deposit", "max_deposit")}),
         ("Welcome bonus", {"fields": ("welcome_bonus",)}),
-        ("Deposits", {"fields": ("min_deposit", "max_deposit", "tier1_daily_deposit_limit",
-                                 "default_daily_deposit_limit")}),
-        ("Play", {"fields": ("tier1_max_stake_per_purchase", "auto_spin_after_minutes")}),
-        ("Withdrawals & anti-money-laundering", {"fields": (
-            "min_withdrawal", "withdrawal_review_threshold", "max_withdrawals_per_day",
-            "new_account_review_hours", "aml_wager_multiplier")}),
+        ("Withdrawals", {"fields": ("min_withdrawal", "withdrawal_review_threshold")}),
         ("KYC", {"fields": ("kyc_require_bank_name_match",)}),
-        ("Responsible gaming", {"fields": ("limit_increase_cooldown_hours",)}),
+        ("Advanced", {"classes": ("collapse",), "fields": (
+            "tier1_daily_deposit_limit", "default_daily_deposit_limit", "tier1_max_stake_per_purchase",
+            "max_withdrawals_per_day", "new_account_review_hours", "auto_spin_after_minutes",
+            "limit_increase_cooldown_hours")}),
         ("Last change", {"fields": ("updated_at", "updated_by")}),
     )
 

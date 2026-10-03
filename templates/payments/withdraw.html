@@ -3,7 +3,7 @@
 {% block title %}Withdraw{% endblock %}
 {% block content %}
 <div class="row between"><h1 class="mb-0">Withdraw</h1><a href="{% url 'payments:wallet' %}">← Wallet</a></div>
-<p class="muted">Available: <b>{{ wallet.account.balance|coins }}</b> · Minimum {{ min_withdrawal|coins_naira }}</p>
+<p class="muted">Winnings available: <b>{{ wallet.winnings_balance|money }}</b> · Minimum {{ min_withdrawal|money }}</p>
 
 {% if user.kyc_tier < 2 %}
   <div class="card lime">
@@ -11,8 +11,6 @@
     <p class="muted">Tier 2 verification is required before any payout. It takes about a minute with your NIN or BVN.</p>
     <a class="btn btn-accent" href="{% url 'accounts:kyc' %}">Verify now</a>
   </div>
-{% elif wallet.wagering_remaining %}
-  <div class="alert alert-warning">Play {{ wallet.wagering_remaining|coins }} more before withdrawing — deposits must be played through at least once (AML rule).</div>
 {% endif %}
 
 <div class="grid grid-2" style="margin-top:16px">
@@ -51,7 +49,7 @@
   <ul class="list">
     {% for w in recent %}
       <li class="list-item">
-        <div class="grow"><div class="title">{{ w.amount|coins_naira }} → {{ w.destination.bank_name }} {{ w.destination.masked_number }}</div>
+        <div class="grow"><div class="title">{{ w.amount|money:w.currency }} → {{ w.destination.bank_name }} {{ w.destination.masked_number }}</div>
           <div class="sub">{{ w.created_at|date:"j M Y, g:i A" }}{% if w.failure_reason %} · {{ w.failure_reason }}{% endif %}{% if w.status == 'rejected' and w.review_note %} · {{ w.review_note }}{% endif %}</div></div>
         <span class="badge {% if w.status == 'paid' %}badge-success{% elif w.status == 'failed' or w.status == 'rejected' %}badge-danger{% elif w.status == 'cancelled' %}{% else %}badge-warning{% endif %}">{{ w.get_status_display }}</span>
       </li>

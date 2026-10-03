@@ -20,7 +20,6 @@ from .forms import DepositForm, PayoutAccountForm, WithdrawForm
 from .models import Deposit, Withdrawal
 from .providers import PROVIDERS, MockProvider, mock_webhook_body
 
-COIN_PACKAGES = [50, 100, 200, 500, 1000, 2000]
 HISTORY_FILTERS = {
     "all": None,
     "deposits": [JournalTransaction.Type.DEPOSIT, JournalTransaction.Type.WELCOME_BONUS],
@@ -28,6 +27,15 @@ HISTORY_FILTERS = {
     "tickets": [JournalTransaction.Type.TICKET_PURCHASE, JournalTransaction.Type.TICKET_REFUND],
     "wins": [JournalTransaction.Type.PRIZE_PAYOUT],
 }
+
+
+def coin_packages():
+    packages = []
+    for part in str(RULES["COIN_PACKAGES"]).split(","):
+        part = part.strip()
+        if part.isdigit() and int(part) > 0:
+            packages.append(int(part))
+    return packages or [100, 300, 500]
 
 
 def _wallet(user):
@@ -73,7 +81,9 @@ def deposit(request):
             return redirect(dep.checkout_url)
     return render(request, "payments/deposit.html", {
         "form": form,
-        "packages": [(c, coins_to_minor(c)) for c in COIN_PACKAGES],
+        "packages": [(c, coins_to_minor(c)) for c in coin_packages()],
+        "min_coins": RULES["MIN_DEPOSIT"] // coin_value(),
+        "max_coins": RULES["MAX_DEPOSIT"] // coin_value(),
         "coin_value": coin_value(),
         "deposit_limit": compliance.effective_deposit_limit(request.user),
         "deposited_today": compliance.deposited_today(request.user),

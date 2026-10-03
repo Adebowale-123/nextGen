@@ -377,3 +377,31 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .package span { font-size: .8rem; color: var(--muted); }
 .package small { font-weight: 600; margin-top: 4px; }
 .package:hover, .package.active { border-color: var(--primary); background: var(--sky); }
+
+.plan { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: .88rem; color: var(--muted); }
+.plan b { color: var(--text); }
+.spin-row { align-items: flex-start; }
+
+/* ---------- Buy coins (packages) ---------- */
+.coin-packages { display: grid; gap: 14px; margin-top: 16px; }
+.coin-package { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0;
+  padding: 14px 18px 0 14px; min-height: 150px; border-radius: 18px; border: 1px solid #f6dd9b;
+  background: linear-gradient(90deg, #fff6c9, #fffaf0 70%); overflow: hidden; }
+.coin-art { position: relative; align-self: flex-end; line-height: 0; }
+.coin-art img { width: 150px; height: auto; display: block; }
+.coin-count { position: absolute; left: 0; bottom: 0; padding: 6px 14px; border-radius: 0 10px 0 0;
+  background: rgba(40, 32, 0, .78); color: #fff; font-weight: 800; font-size: 1.05rem; line-height: 1.4; }
+.price-pill { border: 0; cursor: pointer; padding: 14px 26px; border-radius: 999px; font: inherit; font-weight: 800;
+  font-size: 1.2rem; color: #fff; background: linear-gradient(135deg, #1a73e8, #4aa3ff); box-shadow: 0 6px 16px rgba(26,115,232,.3); }
+.price-pill:hover { filter: brightness(1.08); }
+.custom-coins { margin-top: 18px; padding: 22px; border-radius: 18px; border: 2px dashed #b9d6f7; background: var(--surface); }
+.custom-coins h3 { margin-bottom: 4px; }
+.custom-row { display: flex; gap: 10px; margin-top: 12px; }
+.custom-row input { flex: 1; }
+@media (max-width: 480px) { .coin-art img { width: 110px; } .price-pill { padding: 12px 18px; font-size: 1.05rem; } }
+
+/* Coins + winnings side by side */
+.balance-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.balance-pair .balance-card { background: var(--surface); border-color: var(--border); }
+.balance-pair .coins-card { background: linear-gradient(135deg, #fff6c9, #fffdf5); border-color: #f6dd9b; }
+.balance-pair .balance-amount { font-size: clamp(1.7rem, 5vw, 2.3rem); }

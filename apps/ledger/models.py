@@ -33,8 +33,9 @@ class LedgerAccount(models.Model):
 
     class Purpose(models.TextChoices):
         # Player funds (segregated from operator funds)
-        PLAYER_CASH = "player_cash", "Player cash wallet"
-        PLAYER_BONUS = "player_bonus", "Player bonus (play-only)"
+        PLAYER_CASH = "player_cash", "Player winnings (withdrawable)"
+        PLAYER_COINS = "player_coins", "Player coins (bought, play-only)"
+        PLAYER_BONUS = "player_bonus", "Player bonus coins (play-only)"
         POOL_HOLD = "pool_hold", "Draw pool hold"
         PRIZE_CARRYOVER = "prize_carryover", "Prize money carried to next batch"
         WITHDRAWAL_PENDING = "withdrawal_pending", "Withdrawals in flight"
@@ -42,8 +43,8 @@ class LedgerAccount(models.Model):
         PROVIDER_CLEARING = "provider_clearing", "Payment provider clearing"
         HOUSE_REVENUE = "house_revenue", "House gaming revenue"
 
-    PLAYER_FUND_PURPOSES = (Purpose.PLAYER_CASH, Purpose.POOL_HOLD, Purpose.WITHDRAWAL_PENDING,
-                            Purpose.PRIZE_CARRYOVER)
+    PLAYER_FUND_PURPOSES = (Purpose.PLAYER_CASH, Purpose.PLAYER_COINS, Purpose.POOL_HOLD,
+                            Purpose.WITHDRAWAL_PENDING, Purpose.PRIZE_CARRYOVER)
 
     code = models.CharField(max_length=120, unique=True)
     name = models.CharField(max_length=160)
@@ -60,7 +61,7 @@ class LedgerAccount(models.Model):
         ordering = ["code"]
         constraints = [
             models.CheckConstraint(
-                condition=~Q(purpose__in=["player_cash", "player_bonus"]) | Q(balance__gte=0),
+                condition=~Q(purpose__in=["player_cash", "player_coins", "player_bonus"]) | Q(balance__gte=0),
                 name="player_cash_non_negative",
             ),
         ]
@@ -80,6 +81,10 @@ class Wallet(models.Model):
     currency = models.CharField(max_length=3)
     account = models.OneToOneField(LedgerAccount, on_delete=models.PROTECT, related_name="wallet")
     # Play-only bonus credit (e.g. welcome bonus). Spent before cash; never withdrawable.
+    # Coins the player bought. Spent on games; never withdrawable.
+    coin_account = models.OneToOneField(
+        LedgerAccount, null=True, blank=True, on_delete=models.PROTECT, related_name="coin_wallet"
+    )
     bonus_account = models.OneToOneField(
         LedgerAccount, null=True, blank=True, on_delete=models.PROTECT, related_name="bonus_wallet"
     )
@@ -104,6 +109,17 @@ class Wallet(models.Model):
     @property
     def bonus_balance(self):
         return self.bonus_account.balance if self.bonus_account_id else 0
+
+    @property
+    def coin_balance(self):
+        """Coins available to play with (bought + bonus), in kobo."""
+        bought = self.coin_account.balance if self.coin_account_id else 0
+        return bought + self.bonus_balance
+
+    @property
+    def winnings_balance(self):
+        """Prize money the player can withdraw, in kobo."""
+        return self.account.balance
 
 
 class JournalTransaction(models.Model):

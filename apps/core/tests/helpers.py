@@ -35,19 +35,35 @@ def make_user(*, tier=User.KycTier.BASIC, balance=0, wagering=0, email=None, age
 
 
 def fund(user, amount, wagering=0, currency="NGN"):
-    """Credit a wallet directly through the ledger (as a settled deposit would)."""
+    """Give a player bought coins (as a settled coin purchase would)."""
+    from apps.ledger.services import ensure_coin_account
+
     wallet = user.wallets.get(currency=currency)
     clearing = get_system_account(LedgerAccount.Purpose.PROVIDER_CLEARING, currency, "mock")
-    post_transaction(JournalTransaction.Type.DEPOSIT, [debit(clearing, amount), credit(wallet.account, amount)])
+    post_transaction(JournalTransaction.Type.DEPOSIT,
+                     [debit(clearing, amount), credit(ensure_coin_account(wallet), amount)])
     wallet.refresh_from_db()
     wallet.total_deposited += amount
-    wallet.wagering_remaining = wagering
     wallet.save()
     return wallet
 
 
+def fund_winnings(user, amount, currency="NGN"):
+    """Give a player withdrawable prize money (as a won game would)."""
+    wallet = user.wallets.get(currency=currency)
+    house = get_system_account(LedgerAccount.Purpose.HOUSE_REVENUE, currency)
+    post_transaction(JournalTransaction.Type.PRIZE_PAYOUT, [debit(house, amount), credit(wallet.account, amount)])
+    return wallet
+
+
 def balance(user, currency="NGN"):
+    """Withdrawable winnings (kobo)."""
     return user.wallets.select_related("account").get(currency=currency).account.balance
+
+
+def coins(user, currency="NGN"):
+    """Coins available to play (bought + bonus), in kobo."""
+    return user.wallets.select_related("coin_account", "bonus_account").get(currency=currency).coin_balance
 
 
 def make_game(**overrides):

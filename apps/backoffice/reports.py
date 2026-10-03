@@ -30,7 +30,10 @@ def period_summary(start: date, end: date, currency="NGN"):
     tickets = Ticket.objects.filter(purchased_at__gte=lo, purchased_at__lt=hi, draw__game__currency=currency) \
         .exclude(status=Ticket.Status.REFUNDED).aggregate(stake=Sum("stake"), n=Count("id"))
     prizes = Draw.objects.filter(settled_at__gte=lo, settled_at__lt=hi, game__currency=currency) \
-        .aggregate(prizes=Sum("total_prizes"), stake=Sum("total_stake"), n=Count("id"))
+        .aggregate(prizes=Sum("total_prizes"), stake=Sum("total_stake"), n=Count("id"),
+                   company=Sum("house_share", filter=Q(game__mode="spin")),
+                   pick_stake=Sum("total_stake", filter=Q(game__mode="pick")),
+                   pick_prizes=Sum("total_prizes", filter=Q(game__mode="pick")))
     settled_stake = prizes["stake"] or 0
     settled_prizes = prizes["prizes"] or 0
     return {
@@ -43,7 +46,8 @@ def period_summary(start: date, end: date, currency="NGN"):
         "draws_settled": prizes["n"],
         "settled_stake": settled_stake,
         "prizes": settled_prizes,
-        "ggr": settled_stake - settled_prizes,  # gross gaming revenue on settled draws
+        # Company profit on settled games: the fixed share of each spin batch (+ pick-game margin).
+        "ggr": (prizes["company"] or 0) + (prizes["pick_stake"] or 0) - (prizes["pick_prizes"] or 0),
         "payout_ratio": round(settled_prizes * 100 / settled_stake, 1) if settled_stake else None,
         "new_players": User.objects.filter(date_joined__gte=lo, date_joined__lt=hi, is_staff=False).count(),
     }

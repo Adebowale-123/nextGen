@@ -34,6 +34,20 @@
   table.mini { border-collapse: collapse; margin-top: 6px; }
   table.mini th, table.mini td { padding: 4px 10px; border-bottom: 1px solid #e3ecf7; text-align: left; font-size: 13px; }
   table.mini th { background: #f3f8fe; }
+  .home-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin: 6px 0 28px; }
+  .home-tiles .tile { display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: 14px; text-decoration: none;
+    background: #fff; border: 1px solid #d9e6f5; box-shadow: 0 2px 8px rgba(15,42,68,.05); color: #0f2a44; }
+  .home-tiles .tile:hover { border-color: #1a73e8; text-decoration: none; }
+  .home-tiles .tile b { font-size: 16px; }
+  .home-tiles .tile span { color: #557089; font-size: 13px; }
+  .home-tiles .tile .tile-icon { font-size: 28px; line-height: 1.2; }
+  .home-tiles .tile-primary { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+  .home-tiles .tile-primary span { color: #e8f2fe; }
+  .home-subtitle { font-size: 15px; color: #557089; margin: 0 0 8px; }
+  #content-main { float: none; width: auto; }
+  .colMS { margin-right: 0 !important; }
+  .home-tiles .tile, .home-tiles .tile * { text-decoration: none !important; }
+  .home-tiles { max-width: 1100px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">

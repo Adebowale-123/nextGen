@@ -7,8 +7,8 @@
 <div class="card center" style="margin-top:24px">
   {% if deposit.status == 'success' %}
     <div style="font-size:3rem">✅</div>
-    <h1>Deposit successful</h1>
-    <p class="muted">{{ deposit.amount|coins_naira }} has been added to your wallet.</p>
+    <h1>Coins added</h1>
+    <p class="muted"><b>{{ deposit.amount|coins }}</b> added to your account (paid {{ deposit.amount|money }}).</p>
     <div class="row" style="justify-content:center">
       <a class="btn btn-accent" href="{% url 'games:lobby' %}">Play now</a>
       <a class="btn btn-ghost" href="{% url 'payments:wallet' %}">View wallet</a>

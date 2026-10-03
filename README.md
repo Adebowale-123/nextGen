@@ -71,9 +71,14 @@ Games open, close and settle as visitors arrive, because the free plan has no al
 
 ## The main game: NextGen Daily (spin game)
 
-**Coins.** Players see everything in coins (1 coin = ₦10 by default; change it in Admin → Platform settings → Coins).
-They buy coin packages, play for 50 coins, win coins, and cash out coins to naira at the same rate. Money is still
-stored in kobo behind the scenes, and the back office and admin keep showing naira.
+**Coins and winnings.** Players buy coins (1 coin = ₦10 by default; set it in Admin → Platform settings) and
+spend 50 coins per game. Coins can't be withdrawn. Prizes are paid in naira into a separate **Winnings**
+balance, which is the only thing players can withdraw.
+
+**Money split (admin-only).** Each batch, the company keeps a fixed share of sales (40% by default, set via
+"Prize share of sales" on the game). The rest is shared automatically: one grand prize to the closest ticket
+when the prize money covers it, then ₦7,000 cash prizes to the next closest tickets. Anything smaller than one
+prize carries over to the next batch. Players never see the split, pool or sales.
 
 - **Price and numbers:** ₦500 per play. Pressing **Play Game** gives the player 4 random numbers from 1–90.
 - **Two batches a day:** 8:00 AM–5:00 PM and 8:00 PM–12:00 AM (Lagos time). You can change this per game in Admin → Games.

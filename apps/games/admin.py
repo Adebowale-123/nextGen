@@ -16,7 +16,7 @@ class PrizeTierInline(admin.TabularInline):
 
 
 NAIRA_FIELDS = {"ticket_price": "Price per play (₦)", "grand_prize": "Grand prize (₦)",
-                "consolation_prize": "Consolation prize (₦)"}
+                "consolation_prize": "Cash prize for the next closest tickets (₦)"}
 
 
 class GameAdminForm(forms.ModelForm):
@@ -77,20 +77,20 @@ class GameAdminForm(forms.ModelForm):
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
     form = GameAdminForm
-    list_display = ("name", "mode", "price_display", "times_display", "winners_display", "is_active")
+    list_display = ("name", "price_display", "times_display", "grand_display", "consolation_display", "is_active")
     list_editable = ("is_active",)
     prepopulated_fields = {"slug": ("name",)}
     inlines = [PrizeTierInline]
     fieldsets = (
-        (None, {"fields": ("name", "slug", "mode", "tagline", "is_active")}),
-        ("Price & times", {"fields": ("ticket_price_naira", "game_times", "currency")}),
-        ("Prizes (spin games)", {
-            "fields": ("prize_pool_percent", "grand_prize_naira", "consolation_prize_naira", "consolation_winners",
-                       "consolation_min_match"),
-            "description": "Changes apply to games that have not been spun yet.",
+        (None, {"fields": ("name", "is_active", "ticket_price_naira", "game_times")}),
+        ("Prizes", {
+            "fields": ("grand_prize_naira", "consolation_prize_naira", "prize_pool_percent"),
+            "description": "Winners are picked automatically from the prize share of each batch's sales. "
+                           "The rest is company profit. Changes apply to games not yet spun.",
         }),
-        ("Numbers", {"fields": ("pick_count", "number_max", "max_tickets_per_draw", "max_lines_per_purchase")}),
-        ("Pick games only", {"classes": ("collapse",), "fields": ("draw_time",)}),
+        ("Advanced", {"classes": ("collapse",), "fields": (
+            "slug", "mode", "tagline", "currency", "pick_count", "number_max", "max_tickets_per_draw",
+            "max_lines_per_purchase", "draw_time")}),
     )
 
     def get_inlines(self, request, obj):
@@ -104,11 +104,13 @@ class GameAdmin(admin.ModelAdmin):
     def times_display(self, obj):
         return ", ".join(f"{a}–{b}" for a, b in obj.schedule or []) or "—"
 
-    @admin.display(description="Consolation winners / game")
-    def winners_display(self, obj):
-        if not obj.is_spin:
-            return "—"
-        return obj.consolation_winners if obj.consolation_winners is not None else "Auto"
+    @admin.display(description="Grand prize")
+    def grand_display(self, obj):
+        return format_money(obj.grand_prize, obj.currency)
+
+    @admin.display(description="Cash prize")
+    def consolation_display(self, obj):
+        return format_money(obj.consolation_prize, obj.currency)
 
 
 def _cancel(modeladmin, request, draw, reason):

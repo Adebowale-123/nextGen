@@ -30,16 +30,9 @@ class Game(models.Model):
         default=default_schedule, blank=True,
         help_text='Spin games: daily play windows (Africa/Lagos), e.g. [["08:00","17:00"],["20:00","24:00"]].',
     )
-    prize_pool_percent = models.PositiveSmallIntegerField(default=60, help_text="Share of sales paid out as prizes.")
+    prize_pool_percent = models.PositiveSmallIntegerField(default=60, verbose_name="Prize share of sales (%)", help_text="Share of each batch's sales paid out as prizes. The rest is company profit.")
     grand_prize = models.BigIntegerField(default=100_000_00, help_text="Minor units. Paid for matching all numbers.")
     consolation_prize = models.BigIntegerField(default=7_000_00, help_text="Minor units.")
-    consolation_min_match = models.PositiveSmallIntegerField(default=1)
-    consolation_winners = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="Consolation winners per game. Blank = automatic (as many as the prize pool pays). "
-                  "If you set more than the pool can pay, the company pays the difference; fewer, and the "
-                  "unused money carries over to the next game.",
-    )
     max_lines_per_purchase = models.PositiveSmallIntegerField(default=10)
     max_tickets_per_draw = models.PositiveIntegerField(default=100, help_text="Per player, per draw.")
     is_active = models.BooleanField(default=True)
@@ -119,9 +112,6 @@ class Draw(models.Model):
     carry_in = models.BigIntegerField(default=0)
     carry_out = models.BigIntegerField(default=0)
     house_topup = models.BigIntegerField(default=0)
-    consolation_target = models.PositiveIntegerField(
-        null=True, blank=True, help_text="Winner count chosen by the admin at spin time (blank = game setting)."
-    )
     grand_winner_count = models.PositiveIntegerField(default=0)
     consolation_winner_count = models.PositiveIntegerField(default=0)
     spun_by = models.ForeignKey(
@@ -134,6 +124,7 @@ class Draw(models.Model):
 
     class Meta:
         ordering = ["closes_at"]
+        verbose_name = "Game round"
         constraints = [models.UniqueConstraint(fields=["game", "draw_number"], name="unique_draw_number")]
         indexes = [models.Index(fields=["status", "closes_at"])]
 

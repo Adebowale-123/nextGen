@@ -34,6 +34,9 @@ def credit(account, amount):
 # Accounts
 # ---------------------------------------------------------------------------
 
+PLAYER_SPENDABLE = (LedgerAccount.Purpose.PLAYER_CASH, LedgerAccount.Purpose.PLAYER_COINS,
+                    LedgerAccount.Purpose.PLAYER_BONUS)
+
 SYSTEM_ACCOUNT_KINDS = {
     LedgerAccount.Purpose.POOL_HOLD: LedgerAccount.Kind.LIABILITY,
     LedgerAccount.Purpose.PRIZE_CARRYOVER: LedgerAccount.Kind.LIABILITY,
@@ -70,7 +73,27 @@ def create_wallet(user, currency) -> Wallet:
         )
         wallet = Wallet.objects.create(user=user, currency=currency, account=account)
         ensure_bonus_account(wallet)
+        ensure_coin_account(wallet)
         return wallet
+
+
+def ensure_coin_account(wallet) -> LedgerAccount:
+    """Each wallet has a sub-account for bought coins (created lazily for older wallets)."""
+    if wallet.coin_account_id:
+        return wallet.coin_account
+    account, _ = LedgerAccount.objects.get_or_create(
+        code=f"player-coins:{wallet.user.public_id}:{wallet.currency}",
+        defaults={
+            "name": f"Player coins · {wallet.user} · {wallet.currency}",
+            "kind": LedgerAccount.Kind.LIABILITY,
+            "purpose": LedgerAccount.Purpose.PLAYER_COINS,
+            "currency": wallet.currency,
+            "user": wallet.user,
+        },
+    )
+    Wallet.objects.filter(pk=wallet.pk).update(coin_account=account)
+    wallet.coin_account = account
+    return account
 
 
 def ensure_bonus_account(wallet) -> LedgerAccount:
@@ -94,8 +117,15 @@ def ensure_bonus_account(wallet) -> LedgerAccount:
 
 def get_wallet(user, currency) -> Wallet:
     """The user's wallet, created on first use (e.g. for admin accounts made outside sign-up)."""
-    wallet = Wallet.objects.select_related("account", "bonus_account").filter(user=user, currency=currency).first()
-    return wallet or create_wallet(user, currency)
+    wallet = (Wallet.objects.select_related("account", "bonus_account", "coin_account")
+              .filter(user=user, currency=currency).first())
+    if wallet is None:
+        return create_wallet(user, currency)
+    if not wallet.coin_account_id:
+        ensure_coin_account(wallet)
+    if not wallet.bonus_account_id:
+        ensure_bonus_account(wallet)
+    return wallet
 
 
 def lock_wallet(user, currency) -> Wallet:
@@ -171,8 +201,7 @@ def post_transaction(
                 account = locked[leg.account.pk]
                 increases = (leg.direction == Entry.Direction.DEBIT) == account.is_debit_normal
                 account.balance += leg.amount if increases else -leg.amount
-                if account.purpose in (LedgerAccount.Purpose.PLAYER_CASH, LedgerAccount.Purpose.PLAYER_BONUS) \
-                        and account.balance < 0:
+                if account.purpose in PLAYER_SPENDABLE and account.balance < 0:
                     raise InsufficientFunds("Insufficient wallet balance.")
                 account.save(update_fields=["balance"])
                 Entry.objects.create(

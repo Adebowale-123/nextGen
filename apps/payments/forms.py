@@ -35,8 +35,8 @@ class CoinsField(forms.IntegerField):
 
 
 class DepositForm(forms.Form):
-    amount = CoinsField(label="How many coins?")
-    channel = forms.ChoiceField(choices=Deposit.Channel.choices, widget=forms.RadioSelect, initial="card")
+    amount = CoinsField(label="Enter coin quantity")
+    channel = forms.ChoiceField(choices=Deposit.Channel.choices, required=False, widget=forms.HiddenInput)
     provider = forms.ChoiceField()
 
     def __init__(self, *args, **kwargs):
@@ -47,9 +47,12 @@ class DepositForm(forms.Form):
         if len(providers) == 1:
             self.fields["provider"].widget = forms.HiddenInput()
 
+    def clean_channel(self):
+        return self.cleaned_data.get("channel") or Deposit.Channel.ANY
+
 
 class WithdrawForm(forms.Form):
-    amount = CoinsField(label="Coins to cash out")
+    amount = AmountField(label="Amount to withdraw (₦)")
     destination = forms.ModelChoiceField(queryset=PayoutAccount.objects.none(), empty_label=None,
                                          label="Pay to", widget=forms.RadioSelect)
 

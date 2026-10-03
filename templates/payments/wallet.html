@@ -3,26 +3,29 @@
 {% block title %}Wallet{% endblock %}
 {% block container_class %}narrow-wide{% endblock %}
 {% block content %}
-<section class="card balance-card">
-  <div>
-    <div class="balance-label">Your coins</div>
-    <div class="balance-amount">{{ wallet.account.balance|coins }}</div>
-    <div class="muted">Worth {{ wallet.account.balance|money }} · 1 coin = {% coin_value_naira %}</div>
-    {% if wallet.bonus_balance %}<div class="bonus-line">🎁 + {{ wallet.bonus_balance|coins }} bonus to play</div>{% endif %}
-  </div>
-  <div class="row">
+<div class="balance-pair">
+  <section class="card balance-card coins-card">
+    <div>
+      <div class="balance-label">Coins</div>
+      <div class="balance-amount">{{ wallet.coin_balance|coins }}</div>
+      <div class="muted">For playing{% if wallet.bonus_balance %} · includes {{ wallet.bonus_balance|coins }} bonus{% endif %} · 1 coin = {% coin_value_naira %}</div>
+    </div>
     <a class="btn btn-primary btn-lg" href="{% url 'payments:deposit' %}">Buy coins</a>
+  </section>
+  <section class="card balance-card">
+    <div>
+      <div class="balance-label">Winnings</div>
+      <div class="balance-amount">{{ wallet.winnings_balance|money }}</div>
+      <div class="muted">Prize money · withdraw to your bank</div>
+    </div>
     <a class="btn btn-ghost btn-lg" href="{% url 'payments:withdraw' %}">Withdraw</a>
-  </div>
-</section>
+  </section>
+</div>
 
-{% if wallet.wagering_remaining %}
-  <p class="muted" style="margin:12px 4px 0">Play {{ wallet.wagering_remaining|coins }} more before you can withdraw deposited money.</p>
-{% endif %}
 
 {% for w in open_withdrawals %}
   <div class="alert alert-info row between" style="margin-top:16px">
-    <span>Withdrawal of <b>{{ w.amount|coins_naira }}</b> to {{ w.destination.bank_name }} — {{ w.get_status_display|lower }}</span>
+    <span>Withdrawal of <b>{{ w.amount|money:w.currency }}</b> to {{ w.destination.bank_name }} — {{ w.get_status_display|lower }}</span>
     {% if w.status == 'pending_review' %}
       <form method="post" action="{% url 'payments:cancel_withdrawal' w.reference %}" data-confirm="Cancel this withdrawal?">
         {% csrf_token %}<button class="link-btn" type="submit">Cancel</button>
@@ -45,7 +48,7 @@
             <div class="title">{{ t.get_tx_type_display }}</div>
             <div class="sub">{{ entry.created_at|date:"j M Y, g:i A" }}</div>
           </div>
-          <div class="amount {% if amt > 0 %}tx-in{% endif %}">{% if amt > 0 %}+{% endif %}{{ amt|coins }}</div>
+          <div class="amount {% if amt > 0 %}tx-in{% endif %}">{% if amt > 0 %}+{% endif %}{% if entry.account.purpose == "player_cash" %}{{ amt|money }}{% else %}{{ amt|coins }}{% endif %}</div>
         </li>
         {% endwith %}
       {% endfor %}

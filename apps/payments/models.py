@@ -23,6 +23,7 @@ class Deposit(models.Model):
         FAILED = "failed", "Failed"
 
     class Channel(models.TextChoices):
+        ANY = "any", "Any method (chosen at checkout)"
         CARD = "card", "Debit card"
         BANK_TRANSFER = "bank_transfer", "Bank transfer"
         USSD = "ussd", "USSD"
@@ -47,6 +48,7 @@ class Deposit(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "Coin purchase"
 
     def __str__(self):
         return self.reference

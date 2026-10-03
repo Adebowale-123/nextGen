@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.compliance.models import RiskFlag
-from apps.core.tests.helpers import balance, fund, make_user
+from apps.core.tests.helpers import balance, coins, fund, fund_winnings, make_user
 from apps.ledger.models import LedgerAccount
 from apps.ledger.services import get_system_account, verify_ledger_integrity
 from apps.payments import services
@@ -36,9 +36,8 @@ class DepositFlowTests(TestCase):
         self.assertRedirects(response, reverse("payments:deposit_return", args=[deposit.reference]))
         deposit.refresh_from_db()
         self.assertEqual(deposit.status, Deposit.Status.SUCCESS)
-        self.assertEqual(balance(self.user), 250_000)
-        wallet = self.user.wallets.get()
-        self.assertEqual(wallet.wagering_remaining, 250_000)  # AML 1x play-through
+        self.assertEqual(coins(self.user), 250_000)
+        self.assertEqual(balance(self.user), 0)  # bought coins are not withdrawable winnings
         clearing = get_system_account(LedgerAccount.Purpose.PROVIDER_CLEARING, "NGN", "mock")
         self.assertEqual(clearing.balance, 250_000)
         self.assertTrue(WebhookEvent.objects.filter(reference=deposit.reference, signature_valid=True).exists())
@@ -49,7 +48,7 @@ class DepositFlowTests(TestCase):
         self.client.post(reverse("payments:mock_checkout", args=[deposit.reference]), {"outcome": "failed"})
         deposit.refresh_from_db()
         self.assertEqual(deposit.status, Deposit.Status.FAILED)
-        self.assertEqual(balance(self.user), 0)
+        self.assertEqual(coins(self.user), 0)
 
     def test_replayed_confirmation_credits_once(self):
         deposit, _ = self.start_deposit()
@@ -57,7 +56,7 @@ class DepositFlowTests(TestCase):
         services.reconcile_deposit(deposit.reference)
         body = mock_webhook_body("charge.success", {"reference": deposit.reference})
         services.handle_webhook("mock", SimpleNamespace(body=body, META={MockProvider.SIGNATURE_HEADER: MockProvider.sign(body)}))
-        self.assertEqual(balance(self.user), 250_000)
+        self.assertEqual(coins(self.user), 250_000)
 
     def test_webhook_with_bad_signature_rejected(self):
         deposit, _ = self.start_deposit()
@@ -65,7 +64,7 @@ class DepositFlowTests(TestCase):
         response = self.client.post(reverse("payments:webhook", args=["mock"]), body, content_type="application/json",
                                     HTTP_X_MOCK_SIGNATURE="forged")
         self.assertEqual(response.status_code, 401)
-        self.assertEqual(balance(self.user), 0)
+        self.assertEqual(coins(self.user), 0)
 
     def test_amount_mismatch_is_flagged_not_credited(self):
         deposit, _ = self.start_deposit()
@@ -74,16 +73,16 @@ class DepositFlowTests(TestCase):
             services.reconcile_deposit(deposit.reference)
         deposit.refresh_from_db()
         self.assertEqual(deposit.status, Deposit.Status.FAILED)
-        self.assertEqual(balance(self.user), 0)
+        self.assertEqual(coins(self.user), 0)
         self.assertTrue(RiskFlag.objects.filter(user=self.user, code="deposit_amount_mismatch").exists())
 
     def test_tier1_daily_deposit_limit(self):
-        with self.assertRaisesMessage(services.PaymentError, "daily deposit limit"):
+        with self.assertRaisesMessage(services.PaymentError, "daily limit"):
             services.initiate_deposit(self.user, amount=60_000_00, provider_code="mock", channel="card")
 
     def test_minimum_deposit(self):
-        with self.assertRaisesMessage(services.PaymentError, "Minimum deposit"):
-            services.initiate_deposit(self.user, amount=50_00, provider_code="mock", channel="card")
+        with self.assertRaisesMessage(services.PaymentError, "minimum purchase is 100 coins"):
+            services.initiate_deposit(self.user, amount=500_00, provider_code="mock", channel="card")
 
 
 @override_settings(PAYSTACK_SECRET_KEY="sk_test_abc")
@@ -100,7 +99,8 @@ class PaystackSignatureTests(TestCase):
 
 class WithdrawalTests(TestCase):
     def setUp(self):
-        self.user = make_user(tier=User.KycTier.VERIFIED, balance=50_000_00)
+        self.user = make_user(tier=User.KycTier.VERIFIED)
+        fund_winnings(self.user, 50_000_00)
         self.account = services.add_payout_account(self.user, bank_code="058", account_number="0123456789")
         self.staff = User.objects.create_superuser("ops@example.com", "ops-pass-123")
 
@@ -122,10 +122,11 @@ class WithdrawalTests(TestCase):
         with self.assertRaisesMessage(services.PaymentError, "Tier 2"):
             services.request_withdrawal(tier1, amount=2_000_00, destination_id=acct.pk)
 
-    def test_unplayed_deposit_blocks_withdrawal(self):
-        self.user.wallets.update(wagering_remaining=5_000_00)
-        with self.assertRaisesMessage(services.PaymentError, "played through"):
-            services.request_withdrawal(self.user, amount=2_000_00, destination_id=self.account.pk)
+    def test_bought_coins_cannot_be_withdrawn(self):
+        rich = make_user(tier=User.KycTier.VERIFIED, balance=100_000_00)  # coins only
+        acct = services.add_payout_account(rich, bank_code="058", account_number="3333333333")
+        with self.assertRaisesMessage(services.PaymentError, "winnings balance does not cover"):
+            services.request_withdrawal(rich, amount=2_000_00, destination_id=acct.pk)
 
     def test_insufficient_balance(self):
         with self.assertRaisesMessage(services.PaymentError, "does not cover"):
@@ -149,7 +150,7 @@ class WithdrawalTests(TestCase):
         self.assertEqual(verify_ledger_integrity(), [])
 
     def test_large_withdrawal_reviewed_then_approved_pays(self):
-        fund(self.user, 600_000_00)
+        fund_winnings(self.user, 600_000_00)
         w = services.request_withdrawal(self.user, amount=500_000_00, destination_id=self.account.pk)
         self.assertEqual(w.status, Withdrawal.Status.PENDING_REVIEW)
         self.assertTrue(any("Large withdrawal" in f for f in w.risk_flags))
@@ -159,7 +160,8 @@ class WithdrawalTests(TestCase):
         self.assertEqual(w.status, Withdrawal.Status.PAID)
 
     def test_new_account_goes_to_review(self):
-        fresh = make_user(tier=User.KycTier.VERIFIED, balance=5_000_00, aged_hours=1)
+        fresh = make_user(tier=User.KycTier.VERIFIED, aged_hours=1)
+        fund_winnings(fresh, 5_000_00)
         acct = services.add_payout_account(fresh, bank_code="058", account_number="2222222222")
         w = services.request_withdrawal(fresh, amount=2_000_00, destination_id=acct.pk)
         self.assertEqual(w.status, Withdrawal.Status.PENDING_REVIEW)

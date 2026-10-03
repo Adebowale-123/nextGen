@@ -94,10 +94,8 @@ def spin_queue(request):
     """Closed spin games waiting for the admin to spin, plus recent spins."""
     spin_draws = Draw.objects.filter(game__mode="spin").select_related("game")
     awaiting = list(spin_draws.filter(status=Draw.Status.LOCKED).order_by("closes_at"))
-    for d in awaiting:
-        g = d.game
-        d.pool_estimate = d.total_stake * g.prize_pool_percent // 100 + games.carryover_account(g).balance
-        d.auto_winners = d.pool_estimate // g.consolation_prize if g.consolation_prize else 0
+    for d in awaiting:  # what the automatic split will pay, shown before spinning
+        d.plan = games.prize_plan(d.game, d.total_stake, games.carryover_account(d.game).balance)
     recent = spin_draws.filter(status=Draw.Status.SETTLED).select_related("spun_by").order_by("-settled_at")[:10]
     open_now = spin_draws.filter(status=Draw.Status.OPEN)
     return render(request, "backoffice/spin.html", {"awaiting": awaiting, "recent": recent, "open_now": open_now})
@@ -108,13 +106,8 @@ def spin_queue(request):
 def spin(request, pk):
     if not request.user.has_perm("games.change_draw"):
         return JsonResponse({"ok": False, "error": "Your role is not allowed to spin games."}, status=403)
-    raw = request.POST.get("winners", "").strip()
     try:
-        winners = int(raw) if raw else None
-    except ValueError:
-        return JsonResponse({"ok": False, "error": "Number of winners must be a whole number."}, status=400)
-    try:
-        draw = games.spin_draw(pk, staff_user=request.user, consolation_winners=winners)
+        draw = games.spin_draw(pk, staff_user=request.user)
     except games.GameError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
     cur = draw.game.currency

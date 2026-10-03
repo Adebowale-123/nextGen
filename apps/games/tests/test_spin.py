@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.accounts.services import grant_welcome_bonus
-from apps.core.tests.helpers import balance, make_user
+from apps.core.tests.helpers import balance, coins, make_user
 from apps.games import rng, services
 from apps.games.models import Draw, Game, Ticket
 from apps.ledger.models import LedgerAccount
@@ -84,13 +84,22 @@ class PlayTests(TestCase):
         self.game = make_spin_game()
         self.draw = open_spin_batch(self.game)
 
-    def test_play_generates_four_numbers_and_charges_500(self):
-        user = make_user(balance=2_000_00)
+    def test_play_generates_four_numbers_and_costs_50_coins(self):
+        user = make_user(balance=2_000_00)  # 200 coins
         ticket = services.play_spin_game(user, self.game.pk)
         self.assertEqual(len(set(ticket.numbers)), 4)
         self.assertTrue(all(1 <= n <= 90 for n in ticket.numbers))
-        self.assertEqual(balance(user), 1_500_00)
+        self.assertEqual(coins(user), 1_500_00)  # 150 coins left
+        self.assertEqual(balance(user), 0)  # winnings untouched
         self.assertTrue(rng.verify_ticket(Ticket.objects.select_related("user").get(pk=ticket.pk)))
+
+    def test_winnings_cannot_pay_for_games(self):
+        from apps.core.tests.helpers import fund_winnings
+
+        user = make_user()
+        fund_winnings(user, 10_000_00)
+        with self.assertRaises(services.NeedsDeposit):
+            services.play_spin_game(user, self.game.pk)
 
     def test_closed_game_cannot_be_played(self):
         close_batch(self.draw)
@@ -98,22 +107,13 @@ class PlayTests(TestCase):
         with self.assertRaisesMessage(services.GameError, "closed"):
             services.play_spin_game(user, self.game.pk)
 
-    def test_insufficient_balance_prompts_deposit(self):
-        user = make_user(balance=100_00)
-        with self.assertRaises(services.NeedsDeposit):
-            services.play_spin_game(user, self.game.pk)
-
-    def test_welcome_bonus_pays_for_first_game_and_is_not_cash(self):
+    def test_welcome_bonus_pays_for_first_game(self):
         user = make_user()
         grant_welcome_bonus(user)
         grant_welcome_bonus(user)  # only ever once
-        wallet = user.wallets.select_related("account", "bonus_account").get()
-        self.assertEqual((wallet.balance, wallet.bonus_balance), (0, 500_00))
-
+        self.assertEqual(coins(user), 500_00)
         ticket = services.play_spin_game(user, self.game.pk)
-        wallet = user.wallets.select_related("account", "bonus_account").get()
-        self.assertEqual((wallet.balance, wallet.bonus_balance), (0, 0))
-        self.assertEqual(ticket.bonus_stake, 500_00)
+        self.assertEqual((coins(user), ticket.bonus_stake), (0, 500_00))
         with self.assertRaises(services.NeedsDeposit):
             services.play_spin_game(user, self.game.pk)
         self.assertEqual(verify_ledger_integrity(), [])
@@ -126,16 +126,16 @@ class PlayTests(TestCase):
         self.assertEqual(user.wallets.get().bonus_balance, 500_00)
 
 
-class SpinSettlementTests(TestCase):
-    """Sales are split 60/40; grand prize first, then ₦7,000 consolations until the pool runs out."""
+class SettlementTests(TestCase):
+    """40% of each batch's sales is company profit; the 60% pays winners automatically."""
 
     def setUp(self):
         self.game = make_spin_game()
         self.draw = open_spin_batch(self.game)
         self.staff = User.objects.create_superuser("ops@example.com", "ops-pass-123")
 
-    def play(self, numbers, user=None):
-        user = user or make_user(balance=500_00)
+    def play(self, numbers):
+        user = make_user(balance=self.game.ticket_price)
         services.purchase_tickets(user, self.draw.pk, [numbers], quick_pick_flags=[True])
         return user
 
@@ -144,212 +144,139 @@ class SpinSettlementTests(TestCase):
         with mock.patch.object(rng, "derive_numbers", return_value=list(winning)):
             return services.spin_draw(self.draw.pk, staff_user=self.staff)
 
-    def test_pool_split_consolation_cap_and_carryover(self):
-        two_matchers = [self.play([1, 2, 50, 60]) for _ in range(2)]
-        one_matchers = [self.play([1, 70, 71, 72 + i]) for i in range(10)]
+    def house(self):
+        return get_system_account(LedgerAccount.Purpose.HOUSE_REVENUE, "NGN").balance
+
+    def test_prize_plan(self):
+        plan = services.prize_plan(self.game, sales=50_000_00, carry_in=0)
+        self.assertEqual(plan, {"sales": 50_000_00, "company_share": 20_000_00, "prize_pool": 30_000_00,
+                                "grand_winners": 0, "consolation_winners": 4, "carry_out": 2_000_00})
+        plan = services.prize_plan(self.game, sales=200_000_00, carry_in=1_000_00)
+        # Pool 121,000 -> grand 100,000 + 3 x 7,000 = 121,000, nothing left.
+        self.assertEqual((plan["grand_winners"], plan["consolation_winners"], plan["carry_out"]), (1, 3, 0))
+
+    def test_split_is_exact_and_winners_are_the_closest_tickets(self):
+        two = [self.play([1, 2, 50, 60]) for _ in range(2)]
+        one = [self.play([1, 70, 71, 72 + i]) for i in range(10)]
         for i in range(88):
-            self.play([10 + (i % 30), 41, 42, 43 + (i % 40)])  # no matches
+            self.play([10 + (i % 30), 41, 42, 43 + (i % 40)])
         draw = self.spin()
-
-        # 100 plays x ₦500 = ₦50,000 -> pool ₦30,000 (60%), company ₦20,000 (40%).
-        self.assertEqual(draw.total_stake, 50_000_00)
-        self.assertEqual(draw.prize_pool, 30_000_00)
-        self.assertEqual(draw.house_share, 20_000_00)
-        # ₦30,000 // ₦7,000 = 4 consolation prizes; best matches first.
-        self.assertEqual((draw.grand_winner_count, draw.consolation_winner_count), (0, 4))
-        self.assertEqual(draw.total_prizes, 28_000_00)
-        self.assertEqual(draw.carry_out, 2_000_00)
-        for user in two_matchers:
-            self.assertEqual(balance(user), 7_000_00)
-        self.assertEqual(sum(1 for u in one_matchers if balance(u) == 7_000_00), 2)
-
-        house = get_system_account(LedgerAccount.Purpose.HOUSE_REVENUE, "NGN")
-        self.assertEqual(house.balance, 20_000_00)
+        # 100 plays x 500 = 50,000 -> company 20,000 (40%), prizes 30,000 (60%).
+        self.assertEqual((draw.house_share, draw.prize_pool), (20_000_00, 30_000_00))
+        self.assertEqual(self.house(), 20_000_00)  # exactly 40%, never topped up
+        self.assertEqual(draw.house_topup, 0)
+        # 30,000 < grand prize, so 4 cash prizes of 7,000; 2,000 carried over.
+        self.assertEqual((draw.grand_winner_count, draw.consolation_winner_count, draw.carry_out), (0, 4, 2_000_00))
+        for user in two:
+            self.assertEqual(balance(user), 7_000_00)  # prize money goes to winnings
+        self.assertEqual(sum(1 for u in one if balance(u) == 7_000_00), 2)
         self.assertEqual(services.pool_account(draw).balance, 0)
-        self.assertEqual(services.carryover_account(self.game).balance, 2_000_00)
         self.assertEqual(verify_ledger_integrity(), [])
 
-        # Leftover feeds the next batch's pool.
-        self.draw = open_spin_batch(self.game)
-        self.play([5, 6, 7, 8])
-        nxt = self.spin(winning=(80, 81, 82, 83))
-        self.assertEqual(nxt.carry_in, 2_000_00)
-        self.assertEqual(nxt.prize_pool, 300_00 + 2_000_00)
-        self.assertEqual(verify_ledger_integrity(), [])
-
-    def test_grand_prize_is_guaranteed(self):
-        winner = self.play([4, 3, 2, 1])
-        for _ in range(9):
-            self.play([20, 21, 22, 23])
+    def test_grand_prize_when_the_pool_covers_it(self):
+        self.game.grand_prize = 10_000_00
+        self.game.save()
+        best = self.play([1, 2, 3, 70])
+        for i in range(39):
+            self.play([20, 21, 22, 23 + i % 30])
         draw = self.spin()
-        # Sales ₦5,000 -> pool ₦3,000; the company tops up ₦97,000 to pay ₦100,000.
-        self.assertEqual(draw.grand_winner_count, 1)
-        self.assertEqual(draw.house_topup, 97_000_00)
-        self.assertEqual(balance(winner), 100_000_00)
-        ticket = winner.tickets.get()
-        self.assertEqual((ticket.status, ticket.prize_label), (Ticket.Status.WON, "Grand prize"))
+        # 40 x 500 = 20,000 -> pool 12,000 -> grand 10,000 to the closest ticket, 2,000 carried.
+        self.assertEqual((draw.grand_winner_count, draw.consolation_winner_count), (1, 0))
+        self.assertEqual(balance(best), 10_000_00)
+        self.assertEqual(best.tickets.get().prize_label, "Grand prize")
+        self.assertEqual(self.house(), 8_000_00)
         self.assertEqual(verify_ledger_integrity(), [])
 
-    def test_no_grand_winner_whole_pool_goes_to_consolation(self):
+    def test_no_grand_prize_when_not_covered(self):
+        self.play([1, 2, 3, 4])  # perfect match, but only 300 of prize money
+        draw = self.spin()
+        self.assertEqual((draw.grand_winner_count, draw.consolation_winner_count, draw.carry_out), (0, 0, 300_00))
+
+    def test_leftover_feeds_the_next_batch(self):
         for i in range(30):
-            self.play([1, 50 + i % 20, 71 + i % 10, 85])
-        draw = self.spin(winning=(1, 2, 3, 4))
-        # Sales ₦15,000 -> pool ₦9,000 -> one ₦7,000 consolation, ₦2,000 carried.
-        self.assertEqual(draw.consolation_winner_count, 1)
-        self.assertEqual(draw.carry_out, 2_000_00)
+            self.play([1, 50 + i % 20, 71 + i % 9, 85])
+        first = self.spin()  # pool 9,000 -> 1 prize, 2,000 carried
+        self.assertEqual(first.carry_out, 2_000_00)
+        self.draw = open_spin_batch(self.game)
+        for _ in range(20):
+            self.play([5, 6, 7, 8])
+        second = self.spin(winning=(80, 81, 82, 83))
+        # 10,000 sales -> 6,000 + 2,000 carried = 8,000 -> 1 prize, 1,000 carried.
+        self.assertEqual((second.carry_in, second.prize_pool, second.consolation_winner_count), (2_000_00, 8_000_00, 1))
+        self.assertEqual(verify_ledger_integrity(), [])
 
     def test_tie_break_is_reproducible_from_published_seeds(self):
         for i in range(5):
-            self.play([1, 60 + i, 70 + i, 80 + i])  # five players tie on 1 match
+            self.play([1, 60 + i, 70 + i, 80 + i])  # five tickets tie on 1 match
         for _ in range(25):
             self.play([20, 21, 22, 23])
-        draw = self.spin()  # ₦15,000 sales -> ₦9,000 pool -> exactly one ₦7,000 prize
-        self.assertEqual(draw.consolation_winner_count, 1)
+        draw = self.spin()  # 15,000 sales -> 9,000 pool -> exactly one prize
         tied = Ticket.objects.filter(draw=draw, match_count=1)
         expected = min(tied, key=lambda t: rng.fair_rank(draw.server_seed, draw.client_seed, t.serial))
         self.assertEqual(Ticket.objects.get(draw=draw, status=Ticket.Status.WON), expected)
 
-    def test_admin_spin_endpoint(self):
-        self.play([1, 2, 3, 9])
-        close_batch(self.draw)
-        player = make_user()
-        self.client.force_login(player)
-        self.assertEqual(self.client.post(reverse("backoffice:spin", args=[self.draw.pk])).status_code, 302)
-        self.client.force_login(self.staff)
-        response = self.client.post(reverse("backoffice:spin", args=[self.draw.pk]))
-        data = response.json()
-        self.assertTrue(data["ok"])
-        self.assertEqual(len(data["numbers"]), 4)
-        again = self.client.post(reverse("backoffice:spin", args=[self.draw.pk]))
-        self.assertEqual(again.status_code, 400)
-        self.assertEqual(self.client.get(reverse("backoffice:spin_queue")).status_code, 200)
+    def test_admin_spin_endpoint_and_viewer_role(self):
+        import io
 
-
-class SpinPageTests(TestCase):
-    def test_pages_render_open_and_closed(self):
-        game = make_spin_game()
-        user = make_user(balance=1_000_00)
-        self.client.force_login(user)
-        for url in ("/", reverse("games:lobby"), reverse("games:game_detail", args=[game.slug])):
-            self.assertContains(self.client.get(url), "Next game opens in")
-        draw = open_spin_batch(game)
-        self.assertContains(self.client.get("/"), "Play Game")
-        response = self.client.post(reverse("games:play_game", args=[game.slug]), {"purchase_token": "x1"})
-        ticket = user.tickets.get()
-        self.assertRedirects(response, reverse("games:ticket_detail", args=[ticket.serial]))
-        self.client.post(reverse("games:play_game", args=[game.slug]), {"purchase_token": "x1"})
-        self.assertEqual(user.tickets.count(), 1)  # double-click safe
-        self.assertContains(self.client.get(reverse("games:ticket_detail", args=[ticket.serial])), "after the spin")
-        close_batch(draw)
-        services.spin_draw(draw.pk)
-        self.assertContains(self.client.get(reverse("games:result_detail", args=[draw.pk])), "Consolation winners")
-
-
-class AdminControlTests(TestCase):
-    """The admin can change price, prizes, times and winner counts without touching code."""
-
-    def setUp(self):
-        self.game = make_spin_game()
-        self.draw = open_spin_batch(self.game)
-        self.admin = User.objects.create_superuser("boss@example.com", "Boss-pass-123")
-
-    def play(self, numbers):
-        user = make_user(balance=self.game.ticket_price)
-        services.purchase_tickets(user, self.draw.pk, [numbers], quick_pick_flags=[True])
-        return user
-
-    def spin(self, **kwargs):
-        close_batch(self.draw)
-        with mock.patch.object(rng, "derive_numbers", return_value=[1, 2, 3, 4]):
-            return services.spin_draw(self.draw.pk, staff_user=self.admin, **kwargs)
-
-    def test_game_editor_uses_naira_and_plain_game_times(self):
-        self.client.force_login(self.admin)
-        url = f"/admin/games/game/{self.game.pk}/change/"
-        form = self.client.get(url).context["adminform"].form
-        self.assertEqual(form.initial["ticket_price_naira"], Decimal("500.00"))
-        data = {k: v for k, v in form.initial.items() if v is not None and k != "id"}
-        data.update({"ticket_price_naira": "750", "grand_prize_naira": "250000", "consolation_prize_naira": "5000",
-                     "game_times": "09:00-16:00, 19:00-23:30", "consolation_winners": "25",
-                     "is_active": "on"})
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 302, response.context and response.context["adminform"].form.errors)
-        self.game.refresh_from_db()
-        self.assertEqual((self.game.ticket_price, self.game.grand_prize, self.game.consolation_prize),
-                         (750_00, 250_000_00, 5_000_00))
-        self.assertEqual(self.game.schedule, [["09:00", "16:00"], ["19:00", "23:30"]])
-        self.assertEqual(self.game.consolation_winners, 25)
-        # New price applies to the next play.
-        user = make_user(balance=1_000_00)
-        services.play_spin_game(user, self.game.pk)
-        self.assertEqual(balance(user), 250_00)
-
-    def test_bad_game_times_rejected(self):
-        self.client.force_login(self.admin)
-        url = f"/admin/games/game/{self.game.pk}/change/"
-        form = self.client.get(url).context["adminform"].form
-        data = {k: v for k, v in form.initial.items() if v is not None and k != "id"}
-        data["game_times"] = "17:00-08:00"
-        response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("game_times", response.context["adminform"].form.errors)
-
-    def test_fixed_winner_count_more_than_pool_company_pays_difference(self):
-        self.game.consolation_winners = 5
-        self.game.save()
-        for i in range(10):
-            self.play([1, 50 + i, 70 + i, 80])
-        draw = self.spin()
-        # Pool = 10 x 500 x 60% = ₦3,000; 5 x ₦7,000 = ₦35,000 -> company tops up ₦32,000.
-        self.assertEqual(draw.consolation_winner_count, 5)
-        self.assertEqual(draw.house_topup, 32_000_00)
-        self.assertEqual(draw.carry_out, 0)
-        self.assertEqual(verify_ledger_integrity(), [])
-
-    def test_fewer_winners_than_pool_carries_the_rest(self):
-        self.game.consolation_winners = 1
-        self.game.save()
-        for i in range(30):
-            self.play([1, 50 + i % 20, 71 + i % 9, 85])
-        draw = self.spin()  # pool ₦9,000 -> 1 winner ₦7,000 -> ₦2,000 carried
-        self.assertEqual((draw.consolation_winner_count, draw.carry_out), (1, 2_000_00))
-
-    def test_spin_time_override_beats_game_setting(self):
-        self.game.consolation_winners = 1
-        self.game.save()
-        for i in range(10):
-            self.play([1, 50 + i, 70 + i, 80])
-        draw = self.spin(consolation_winners=3)
-        self.assertEqual(draw.consolation_target, 3)
-        self.assertEqual(draw.consolation_winner_count, 3)
-        self.assertEqual(verify_ledger_integrity(), [])
-
-    def test_zero_winners_keeps_pool_for_next_game(self):
-        for i in range(30):
-            self.play([1, 50 + i % 20, 71 + i % 9, 85])
-        draw = self.spin(consolation_winners=0)
-        self.assertEqual(draw.consolation_winner_count, 0)
-        self.assertEqual(draw.carry_out, 9_000_00)
-
-    def test_spin_endpoint_accepts_winner_count_and_viewer_role_cannot_spin(self):
         from django.contrib.auth.models import Group
         from django.core.management import call_command
 
-        self.play([1, 2, 60, 70])
+        self.play([1, 2, 3, 9])
         close_batch(self.draw)
-        call_command("setup_roles", stdout=__import__("io").StringIO())
+        call_command("setup_roles", stdout=io.StringIO())
         viewer = make_user(is_staff=True)
         viewer.groups.add(Group.objects.get(name="Viewer"))
         self.client.force_login(viewer)
         self.assertEqual(self.client.post(reverse("backoffice:spin", args=[self.draw.pk])).status_code, 403)
-        self.client.force_login(self.admin)
-        with mock.patch.object(rng, "derive_numbers", return_value=[1, 2, 3, 4]):
-            data = self.client.post(reverse("backoffice:spin", args=[self.draw.pk]), {"winners": "1"}).json()
+        self.client.force_login(self.staff)
+        self.assertContains(self.client.get(reverse("backoffice:spin_queue")), "Prize money")
+        data = self.client.post(reverse("backoffice:spin", args=[self.draw.pk])).json()
         self.assertTrue(data["ok"])
-        self.assertEqual(data["consolation_winners"], 1)
+        self.assertEqual(len(data["numbers"]), 4)
+        self.assertEqual(self.client.post(reverse("backoffice:spin", args=[self.draw.pk])).status_code, 400)
 
 
-class PlayerExperienceTests(TestCase):
+class AdminGameEditorTests(TestCase):
+    def setUp(self):
+        self.game = make_spin_game()
+        open_spin_batch(self.game)
+        self.admin = User.objects.create_superuser("boss@example.com", "Boss-pass-123")
+        self.client.force_login(self.admin)
+        self.url = f"/admin/games/game/{self.game.pk}/change/"
+
+    def form_data(self, **changes):
+        form = self.client.get(self.url).context["adminform"].form
+        data = {k: v for k, v in form.initial.items() if v is not None and k != "id"}
+        data.update(changes)
+        return data
+
+    def test_edit_price_prizes_and_times_in_naira(self):
+        response = self.client.post(self.url, self.form_data(
+            ticket_price_naira="750", grand_prize_naira="250000", consolation_prize_naira="5000",
+            game_times="09:00-16:00, 19:00-23:30", prize_pool_percent="55", is_active="on"))
+        self.assertEqual(response.status_code, 302)
+        self.game.refresh_from_db()
+        self.assertEqual((self.game.ticket_price, self.game.grand_prize, self.game.consolation_prize,
+                          self.game.prize_pool_percent), (750_00, 250_000_00, 5_000_00, 55))
+        self.assertEqual(self.game.schedule, [["09:00", "16:00"], ["19:00", "23:30"]])
+        user = make_user(balance=1_000_00)
+        services.play_spin_game(user, self.game.pk)
+        self.assertEqual(coins(user), 250_00)
+
+    def test_bad_game_times_rejected(self):
+        response = self.client.post(self.url, self.form_data(game_times="17:00-08:00"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("game_times", response.context["adminform"].form.errors)
+
+    def test_admin_home_is_simple(self):
+        page = self.client.get("/admin/")
+        for text in ("Spin games", "Approve withdrawals", "Review KYC", "Game settings", "Platform settings"):
+            self.assertContains(page, text)
+        for hidden in ("Journal transactions", "Ledger accounts", "Webhook events"):
+            self.assertNotContains(page, hidden)
+
+
+class PlayerViewTests(TestCase):
     def setUp(self):
         self.game = make_spin_game()
         self.draw = open_spin_batch(self.game)
@@ -360,16 +287,34 @@ class PlayerExperienceTests(TestCase):
         data = self.client.post(reverse("games:play_game", args=[self.game.slug]), {"purchase_token": "p1"},
                                 HTTP_X_REQUESTED_WITH="fetch").json()
         self.assertTrue(data["ok"])
-        self.assertEqual(len(data["numbers"]), 4)
         self.assertEqual(user.tickets.get().numbers, data["numbers"])
+        self.assertEqual(data["paid"], "50 coins")
 
-    def test_play_popup_reports_low_balance_with_deposit_link(self):
+    def test_play_popup_low_coins_links_to_buy_coins(self):
         user = make_user(balance=100_00)
         self.client.force_login(user)
         data = self.client.post(reverse("games:play_game", args=[self.game.slug]), {"purchase_token": "p2"},
                                 HTTP_X_REQUESTED_WITH="fetch").json()
         self.assertFalse(data["ok"])
-        self.assertIn("/wallet/deposit/", data["deposit_url"])
+        self.assertIn("/wallet/deposit/?coins=", data["deposit_url"])
+
+    def test_players_see_coins_and_naira_prizes_but_never_the_split(self):
+        user = make_user(balance=2_000_00)
+        self.client.force_login(user)
+        home = self.client.get("/").content.decode()
+        for text in ("200 coins", "50 coins", "₦100,000.00", "₦7,000.00", "Buy coins", "Your winnings"):
+            self.assertIn(text, home)
+        detail = self.client.get(reverse("games:game_detail", args=[self.game.slug])).content.decode()
+        for page in (home, detail):
+            self.assertNotIn("Prize pool", page)
+            self.assertNotIn("60%", page)
+            self.assertNotIn("40%", page)
+        services.play_spin_game(user, self.game.pk)
+        close_batch(self.draw)
+        services.spin_draw(self.draw.pk)
+        result = self.client.get(reverse("games:result_detail", args=[self.draw.pk])).content.decode()
+        self.assertNotIn("Prize pool", result)
+        self.assertNotIn("carried", result)
 
     def test_dashboard_shows_details_history_and_kyc(self):
         from apps.accounts.services import submit_kyc
@@ -377,13 +322,10 @@ class PlayerExperienceTests(TestCase):
         user = make_user(balance=2_000_00)
         services.play_spin_game(user, self.game.pk)
         submit_kyc(user, id_type="nin", id_number="12345678901", bank_code="058", account_number="0123456789")
-        close_batch(self.draw)
-        with mock.patch.object(rng, "derive_numbers", return_value=list(user.tickets.get().numbers)):
-            services.spin_draw(self.draw.pk)
         self.client.force_login(user)
         page = self.client.get("/")
         for text in ("My details", user.full_name, "KYC status", "Verified", "Name matches ID", "Games played",
-                     "Grand prize", "Guaranty Trust Bank"):
+                     "Guaranty Trust Bank"):
             self.assertContains(page, text)
 
     def test_new_unverified_user_lands_on_dashboard(self):
@@ -392,3 +334,10 @@ class PlayerExperienceTests(TestCase):
         user.save()
         self.client.force_login(user)
         self.assertContains(self.client.get("/"), "Enter code")
+
+    def test_double_click_plays_once(self):
+        user = make_user(balance=1_000_00)
+        self.client.force_login(user)
+        for _ in range(2):
+            self.client.post(reverse("games:play_game", args=[self.game.slug]), {"purchase_token": "same"})
+        self.assertEqual(user.tickets.count(), 1)

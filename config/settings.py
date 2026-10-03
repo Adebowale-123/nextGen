@@ -68,7 +68,7 @@ SCHEDULER_ON_REQUEST_SECONDS = env_int("SCHEDULER_ON_REQUEST_SECONDS", 20)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
-    "django.contrib.auth",
+    "apps.core.apps.StaffAccessConfig",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -258,8 +258,10 @@ NEXTGEN = {
     # AML: deposits must be wagered this many times before withdrawal.
     "AML_WAGER_MULTIPLIER": Decimal(env("AML_WAGER_MULTIPLIER", "1.0")),
     # Deposits
-    "MIN_DEPOSIT": env_int("MIN_DEPOSIT", 100_00),
-    "MAX_DEPOSIT": env_int("MAX_DEPOSIT", 5_000_000_00),
+    "MIN_DEPOSIT": env_int("MIN_DEPOSIT", 1_000_00),
+    "MAX_DEPOSIT": env_int("MAX_DEPOSIT", 1_000_000_00),
+    # Coin packages shown on the Buy coins page.
+    "COIN_PACKAGES": "100,300,500,1000,2000,5000",
     "DEFAULT_DAILY_DEPOSIT_LIMIT": env_int("DEFAULT_DAILY_DEPOSIT_LIMIT", 500_000_00),
     "TIER1_DAILY_DEPOSIT_LIMIT": env_int("TIER1_DAILY_DEPOSIT_LIMIT", 50_000_00),
     # Tier 1 players may only buy low-stake tickets: max total per purchase.

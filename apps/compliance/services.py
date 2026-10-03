@@ -90,18 +90,18 @@ def check_can_deposit(user, amount):
     ensure_account_active(user)
     ensure_not_self_excluded(user)
     if not user.is_contact_verified:
-        raise ComplianceError("Verify your phone or email before depositing.")
+        raise ComplianceError("Verify your phone or email before buying coins.")
     if amount < RULES["MIN_DEPOSIT"]:
-        raise ComplianceError(f"Minimum deposit is {format_coins(RULES['MIN_DEPOSIT'], with_naira=True)}.")
+        raise ComplianceError(f"The minimum purchase is {format_coins(RULES['MIN_DEPOSIT'], with_naira=True)}.")
     if amount > RULES["MAX_DEPOSIT"]:
-        raise ComplianceError(f"Maximum single deposit is {format_coins(RULES['MAX_DEPOSIT'], with_naira=True)}.")
+        raise ComplianceError(f"The maximum single purchase is {format_coins(RULES['MAX_DEPOSIT'], with_naira=True)}.")
     limit = effective_deposit_limit(user)
     used = deposited_today(user)
     if used + amount > limit:
         remaining = max(0, limit - used)
         raise ComplianceError(
-            f"This exceeds your daily deposit limit of {format_coins(limit, with_naira=True)}. "
-            f"You can deposit up to {format_coins(remaining, with_naira=True)} more today."
+            f"This exceeds your daily limit of {format_coins(limit, with_naira=True)}. "
+            f"You can buy up to {format_coins(remaining, with_naira=True)} more today."
         )
 
 

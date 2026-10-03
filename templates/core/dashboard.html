@@ -9,18 +9,24 @@
   </div>
 {% endif %}
 
-<section class="card balance-card">
-  <div>
-    <div class="balance-label">Hi {{ user.display_name }}, your coins</div>
-    <div class="balance-amount">{{ nav_wallet.account.balance|coins }}</div>
-    {% if nav_wallet.bonus_balance %}<div class="bonus-line">🎁 + {{ nav_wallet.bonus_balance|coins }} bonus to play</div>
-    <div class="muted" style="margin-top:4px">1 coin = {% coin_value_naira %}</div>{% endif %}
-  </div>
-  <div class="row">
+<div class="balance-pair">
+  <section class="card balance-card coins-card">
+    <div>
+      <div class="balance-label">Hi {{ user.display_name }}, your coins</div>
+      <div class="balance-amount">{{ nav_wallet.coin_balance|coins }}</div>
+      <div class="muted">For playing games{% if nav_wallet.bonus_balance %} · includes {{ nav_wallet.bonus_balance|coins }} bonus{% endif %}</div>
+    </div>
     <a class="btn btn-primary btn-lg" href="{% url 'payments:deposit' %}">Buy coins</a>
+  </section>
+  <section class="card balance-card">
+    <div>
+      <div class="balance-label">Your winnings</div>
+      <div class="balance-amount">{{ nav_wallet.winnings_balance|money }}</div>
+      <div class="muted">Prize money you can withdraw to your bank</div>
+    </div>
     <a class="btn btn-ghost btn-lg" href="{% url 'payments:withdraw' %}">Withdraw</a>
-  </div>
-</section>
+  </section>
+</div>
 
 <section style="margin-top:24px">
   <h2>Play now</h2>
@@ -70,7 +76,7 @@
     <div class="stat-row">
       <div class="stat"><div class="label">Games played</div><div class="value">{{ played_count }}</div></div>
       <div class="stat"><div class="label">Games won</div><div class="value">{{ won_count }}</div></div>
-      <div class="stat"><div class="label">Total won</div><div class="value pos">{{ won_total|coins }}</div></div>
+      <div class="stat"><div class="label">Total won</div><div class="value pos">{{ won_total|money }}</div></div>
     </div>
     <div class="tabs" style="margin-top:16px" data-tabs>
       <a href="#played" class="active" data-tab="played">Played</a>
@@ -101,7 +107,7 @@
                 <div class="title">{{ t.prize_label|default:"Win" }}</div>
                 <div class="sub">{{ t.draw.game.name }} · {{ t.draw.closes_at|date:"j M Y" }} · matched {{ t.match_count }}</div>
               </a>
-              <span class="amount tx-in">+{{ t.prize_amount|coins }}</span>
+              <span class="amount tx-in">+{{ t.prize_amount|money:t.draw.game.currency }}</span>
             </li>
           {% endfor %}
         </ul>

@@ -12,13 +12,14 @@ from django.utils import timezone
 
 from apps.compliance import services as compliance
 from apps.core.config import RULES
-from apps.core.money import format_coins
+from apps.core.money import format_coins, format_money
 from apps.ledger.models import JournalTransaction, LedgerAccount, Wallet
 from apps.ledger.services import (
     InsufficientFunds,
     credit,
     debit,
     ensure_bonus_account,
+    ensure_coin_account,
     get_system_account,
     lock_wallet,
     post_transaction,
@@ -100,18 +101,19 @@ def purchase_tickets(user, draw_id, lines, *, quick_pick_flags=None, idempotency
 
         wallet = lock_wallet(user, game.currency)
         bonus = LedgerAccount.objects.select_for_update().get(pk=ensure_bonus_account(wallet).pk)
-        # Bonus credit is spent first; the rest comes from cash.
+        coins = LedgerAccount.objects.select_for_update().get(pk=ensure_coin_account(wallet).pk)
+        # Games are paid with coins only: bonus coins first, then bought coins. Winnings are never spent.
         bonus_used = min(bonus.balance, cost)
-        cash_used = cost - bonus_used
-        if wallet.account.balance < cash_used:
-            shortfall = cash_used - wallet.account.balance
+        coins_used = cost - bonus_used
+        if coins.balance < coins_used:
+            shortfall = coins_used - coins.balance
             raise NeedsDeposit(f"You need {format_coins(shortfall)} more to play.", shortfall)
 
         legs = [credit(pool_account(draw), cost)]
         if bonus_used:
             legs.append(debit(bonus, bonus_used))
-        if cash_used:
-            legs.append(debit(wallet.account, cash_used))
+        if coins_used:
+            legs.append(debit(coins, coins_used))
         try:
             txn = post_transaction(
                 JournalTransaction.Type.TICKET_PURCHASE,
@@ -141,9 +143,7 @@ def purchase_tickets(user, draw_id, lines, *, quick_pick_flags=None, idempotency
         Ticket.objects.bulk_create(tickets)
 
         wallet.total_staked += cost
-        # Only cash play counts towards the AML play-through requirement.
-        wallet.wagering_remaining = max(0, wallet.wagering_remaining - cash_used)
-        wallet.save(update_fields=["total_staked", "wagering_remaining"])
+        wallet.save(update_fields=["total_staked"])
         draw.ticket_count += len(tickets)
         draw.total_stake += cost
         draw.save(update_fields=["ticket_count", "total_stake"])
@@ -312,7 +312,7 @@ def _settle_pick_draw(draw_id) -> Draw:
         for ticket in winners_to_notify:
             notify(
                 ticket.user,
-                f"You won {format_coins(ticket.prize_amount)}! 🎉",
+                f"You won {format_money(ticket.prize_amount, game.currency)}! 🎉",
                 f"Ticket {ticket.serial} matched {ticket.match_count} in {draw} ({ticket.prize_tier.name}). "
                 "Winnings are in your wallet.",
                 kind="win",
@@ -334,12 +334,13 @@ def cancel_draw(draw_id, reason, staff_user=None) -> Draw:
         for ticket in draw.tickets.filter(status=Ticket.Status.ACTIVE):
             refunds[ticket.user_id][0] += ticket.stake - ticket.bonus_stake
             refunds[ticket.user_id][1] += ticket.bonus_stake
-        wallets = Wallet.objects.filter(user_id__in=refunds, currency=draw.game.currency).select_related("account", "user")
+        wallets = Wallet.objects.filter(user_id__in=refunds, currency=draw.game.currency).select_related(
+            "account", "user", "coin_account", "bonus_account")
         for wallet in wallets:
             cash, bonus = refunds[wallet.user_id]
             legs = [debit(pool, cash + bonus)]
             if cash:
-                legs.append(credit(wallet.account, cash))
+                legs.append(credit(ensure_coin_account(wallet), cash))
             if bonus:
                 legs.append(credit(ensure_bonus_account(wallet), bonus))
             post_transaction(
@@ -350,7 +351,7 @@ def cancel_draw(draw_id, reason, staff_user=None) -> Draw:
                 created_by=staff_user,
             )
             Wallet.objects.filter(pk=wallet.pk).update(
-                total_staked=F("total_staked") - (cash + bonus), wagering_remaining=F("wagering_remaining") + cash
+                total_staked=F("total_staked") - (cash + bonus)
             )
             notify(wallet.user, "Game cancelled — refunded",
                    f"{draw} was cancelled. {format_coins(cash + bonus)} has been refunded.",
@@ -431,26 +432,43 @@ def play_spin_game(user, game_id, *, idempotency_key=None) -> Ticket:
     return purchase_tickets(user, draw.pk, [numbers], quick_pick_flags=[True], idempotency_key=idempotency_key)[0]
 
 
-def spin_draw(draw_id, staff_user=None, consolation_winners=None) -> Draw:
-    """Admin action: draw the winning numbers for a closed batch and pay the winners.
-
-    `consolation_winners` overrides the game's setting for this spin only (None = use the game setting).
-    """
-    if consolation_winners is not None and consolation_winners < 0:
-        raise GameError("Number of winners cannot be negative.")
+def spin_draw(draw_id, staff_user=None) -> Draw:
+    """Admin action: draw the winning numbers for a closed batch and pay the winners."""
     with transaction.atomic():
         draw = Draw.objects.select_for_update().get(pk=draw_id)
         if draw.status != Draw.Status.LOCKED:
             raise GameError("Only closed games awaiting a spin can be spun.")
         draw.spun_by = staff_user
-        draw.consolation_target = consolation_winners
-        draw.save(update_fields=["spun_by", "consolation_target"])
+        draw.save(update_fields=["spun_by"])
     execute_draw(draw_id)
-    return settle_draw(draw_id)
+    return settle_spin_draw(draw_id)
+
+
+def prize_plan(game, sales, carry_in):
+    """How a batch's money is split. Admin-only: players never see these figures.
+
+    - The company keeps (100 - prize_pool_percent)% of sales, exactly.
+    - The prize pool is the rest plus any money carried over from the last batch.
+    - One grand prize is awarded if the pool covers it; the rest pays as many
+      consolation prizes as it can. What's left (less than one prize) carries over.
+    """
+    pool_share = sales * game.prize_pool_percent // 100
+    prize_pool = pool_share + carry_in
+    has_grand = game.grand_prize > 0 and prize_pool >= game.grand_prize
+    remaining = prize_pool - (game.grand_prize if has_grand else 0)
+    consolations = remaining // game.consolation_prize if game.consolation_prize else 0
+    return {
+        "sales": sales,
+        "company_share": sales - pool_share,
+        "prize_pool": prize_pool,
+        "grand_winners": 1 if has_grand else 0,
+        "consolation_winners": consolations,
+        "carry_out": remaining - consolations * game.consolation_prize,
+    }
 
 
 def settle_spin_draw(draw_id) -> Draw:
-    """Split sales 60/40, pay the grand prize, then consolation prizes until the pool runs out."""
+    """Rank tickets by closeness to the spun numbers and pay prizes from the 60% pool."""
     winners = []
     with transaction.atomic():
         draw = Draw.objects.select_for_update().select_related("game").get(pk=draw_id)
@@ -461,59 +479,41 @@ def settle_spin_draw(draw_id) -> Draw:
         pool = pool_account(draw)
         house = get_system_account(LedgerAccount.Purpose.HOUSE_REVENUE, game.currency)
         carry = carryover_account(game)
-
-        sales = draw.total_stake
-        pool_share = sales * game.prize_pool_percent // 100
-        house_share = sales - pool_share
         carry.refresh_from_db()
         carry_in = carry.balance
+        plan = prize_plan(game, draw.total_stake, carry_in)
         if carry_in:
             post_transaction(JournalTransaction.Type.PRIZE_CARRYOVER, [debit(carry, carry_in), credit(pool, carry_in)],
                              description=f"Prize money carried into {draw}", idempotency_key=f"carry-in:{draw.pk}",
                              source=draw)
-        if house_share:
+        if plan["company_share"]:
             post_transaction(JournalTransaction.Type.POOL_SETTLEMENT,
-                             [debit(pool, house_share), credit(house, house_share)],
+                             [debit(pool, plan["company_share"]), credit(house, plan["company_share"])],
                              description=f"Company share ({100 - game.prize_pool_percent}%) · {draw}",
                              idempotency_key=f"pool-settle:{draw.pk}", source=draw)
-        prize_pool = pool_share + carry_in
 
+        # Closest tickets first: most matching numbers, ties broken by a verifiable seed-based random order.
         winning = set(draw.winning_numbers)
         for ticket in tickets:
             ticket.match_count = len(winning.intersection(ticket.numbers))
+            ticket.status = Ticket.Status.LOST
+        ranked = sorted(tickets, key=lambda t: (-t.match_count,
+                                                rng.fair_rank(draw.server_seed, draw.client_seed, t.serial)))
+        awards = []
+        if plan["grand_winners"] and ranked:
+            awards.append((ranked.pop(0), game.grand_prize, "Grand prize"))
+        awards += [(t, game.consolation_prize, "Cash prize") for t in ranked[:plan["consolation_winners"]]]
+        paid = sum(amount for _, amount, _ in awards)
+        carry_out = plan["prize_pool"] - paid  # unused prize money (incl. unfilled prizes) stays with players
 
-        grand = [t for t in tickets if t.match_count >= game.pick_count]
-        grand_total = len(grand) * game.grand_prize
-
-        # Consolation: best matches first; ties broken by a verifiable seed-based random order.
-        qualifiers = [t for t in tickets if game.consolation_min_match <= t.match_count < game.pick_count]
-        qualifiers.sort(key=lambda t: (-t.match_count, rng.fair_rank(draw.server_seed, draw.client_seed, t.serial)))
-        target = draw.consolation_target if draw.consolation_target is not None else game.consolation_winners
-        if target is None:  # automatic: as many as the pool can pay after the grand prize
-            remaining = max(0, prize_pool - grand_total)
-            target = remaining // game.consolation_prize if game.consolation_prize else 0
-        consolation = qualifiers[:target]
-
-        needed = grand_total + len(consolation) * game.consolation_prize
-        topup = max(0, needed - prize_pool)
-        carry_out = max(0, prize_pool - needed)
-        if topup:
-            # Guaranteed grand prize / admin-chosen winner count: the company covers any shortfall.
-            post_transaction(JournalTransaction.Type.POOL_TOPUP, [debit(house, topup), credit(pool, topup)],
-                             description=f"Company top-up of prize pool · {draw}",
-                             idempotency_key=f"pool-topup:{draw.pk}", source=draw)
-
-        awards = [(t, game.grand_prize, "Grand prize") for t in grand]
-        awards += [(t, game.consolation_prize, "Consolation prize") for t in consolation]
         wallets = {
             w.user_id: w
             for w in Wallet.objects.filter(user_id__in={t.user_id for t, _, _ in awards}, currency=game.currency)
             .select_related("account")
         }
-        for ticket in tickets:
-            ticket.status = Ticket.Status.LOST
         for ticket, amount, label in awards:
             wallet = wallets[ticket.user_id]
+            # Prizes are money: they go to the withdrawable winnings balance.
             ticket.payout_transaction = post_transaction(
                 JournalTransaction.Type.PRIZE_PAYOUT, [debit(pool, amount), credit(wallet.account, amount)],
                 description=f"{label} · {draw} · ticket {ticket.serial}",
@@ -531,14 +531,14 @@ def settle_spin_draw(draw_id) -> Draw:
 
         Ticket.objects.bulk_update(tickets, ["status", "match_count", "prize_amount", "prize_label",
                                              "payout_transaction"])
-        draw.prize_pool = prize_pool
-        draw.house_share = house_share
+        draw.prize_pool = plan["prize_pool"]
+        draw.house_share = plan["company_share"]
         draw.carry_in = carry_in
         draw.carry_out = carry_out
-        draw.house_topup = topup
-        draw.grand_winner_count = len(grand)
-        draw.consolation_winner_count = len(consolation)
-        draw.total_prizes = sum(amount for _, amount, _ in awards)
+        draw.house_topup = 0
+        draw.grand_winner_count = sum(1 for _, _, label in awards if label == "Grand prize")
+        draw.consolation_winner_count = len(awards) - draw.grand_winner_count
+        draw.total_prizes = paid
         draw.winner_count = len(awards)
         draw.status = Draw.Status.SETTLED
         draw.settled_at = timezone.now()
@@ -547,12 +547,12 @@ def settle_spin_draw(draw_id) -> Draw:
         for ticket in winners:
             notify(
                 ticket.user,
-                f"You won {format_coins(ticket.prize_amount)}! 🎉",
-                f"{ticket.prize_label} in {game.name}. The money is in your wallet.",
+                f"You won {format_money(ticket.prize_amount, game.currency)}! 🎉",
+                f"{ticket.prize_label} in {game.name}. The money is in your winnings — withdraw it any time.",
                 kind="win", link=reverse("games:ticket_detail", args=[ticket.serial]), sms=True,
             )
-    log.info("Settled %s: pool %s, %s grand, %s consolation, carry %s",
-             draw, draw.prize_pool, draw.grand_winner_count, draw.consolation_winner_count, draw.carry_out)
+    log.info("Settled %s: sales %s, company %s, pool %s, %s winners, carry %s", draw, draw.total_stake,
+             draw.house_share, draw.prize_pool, draw.winner_count, draw.carry_out)
     return draw
 
 

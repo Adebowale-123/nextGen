@@ -23,9 +23,10 @@ class CoinTests(TestCase):
     def test_buy_coins_page_charges_naira_for_coins(self):
         user = make_user()
         self.client.force_login(user)
-        page = self.client.get("/wallet/deposit/?coins=50")
+        page = self.client.get("/wallet/deposit/?coins=100")
         self.assertContains(page, "Buy coins")
-        self.assertContains(page, "₦500.00")  # 50-coin package price
+        self.assertContains(page, "₦1,000.00")  # 100-coin package price
+        self.assertContains(page, "Min 100 coins")
         self.client.post("/wallet/deposit/", {"amount": "100", "channel": "card", "provider": "mock"})
         self.assertEqual(user.deposits.get().amount, 1_000_00)
 
@@ -36,6 +37,6 @@ class CoinTests(TestCase):
                             number_max=90)
         self.client.force_login(make_user(balance=2_000_00))
         page = self.client.get("/")
-        for text in ("200 coins", "50 coins", "Grand prize", "10,000 coins", "700 coins", "Buy coins"):
+        for text in ("200 coins", "50 coins", "Grand prize", "₦100,000.00", "₦7,000.00", "Buy coins"):
             self.assertContains(page, text)
         self.assertNotContains(page, "Prize pool")

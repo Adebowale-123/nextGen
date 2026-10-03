@@ -4,14 +4,14 @@
     <div class="trophy"><svg class="icon"><use href="#i-trophy"/></svg></div>
     <div class="grow">
       <h3 class="mb-0">{{ card.game.name }}</h3>
-      <div class="muted">Win up to <b>{{ card.game.grand_prize|coins }}</b></div>
+      <div class="muted">Win up to <b>{{ card.game.grand_prize|money }}</b></div>
     </div>
     <div class="price">{{ card.game.ticket_price|coins }}</div>
   </div>
 
   <div class="prize-strip">
-    <div><span class="label">Grand prize</span><b>{{ card.game.grand_prize|coins }}</b></div>
-    <div><span class="label">Consolation</span><b>{{ card.game.consolation_prize|coins }}</b></div>
+    <div><span class="label">Grand prize</span><b>{{ card.game.grand_prize|money }}</b></div>
+    <div><span class="label">Cash prizes</span><b>{{ card.game.consolation_prize|money }}</b></div>
   </div>
 
   <div class="game-clock">

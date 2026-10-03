@@ -1,0 +1,40 @@
+{% extends "admin/index.html" %}
+{% load backoffice_tags nextgen %}
+
+{% block content %}
+{% admin_home_summary as s %}
+<div class="home-tiles">
+  <a class="tile tile-primary" href="{% url 'backoffice:spin_queue' %}">
+    <span class="tile-icon">🎡</span><b>Spin games</b>
+    <span>{% if s.queues.spins_pending %}{{ s.queues.spins_pending }} waiting{% else %}Nothing waiting{% endif %}</span>
+  </a>
+  <a class="tile" href="{% url 'admin:payments_withdrawal_changelist' %}?status__exact=pending_review">
+    <span class="tile-icon">🏦</span><b>Approve withdrawals</b>
+    <span>{% if s.queues.withdrawals_review %}{{ s.queues.withdrawals_review }} waiting{% else %}Nothing waiting{% endif %}</span>
+  </a>
+  <a class="tile" href="{% url 'admin:accounts_kycsubmission_changelist' %}?status__exact=pending">
+    <span class="tile-icon">🪪</span><b>Review KYC</b>
+    <span>{% if s.queues.kyc_pending %}{{ s.queues.kyc_pending }} waiting{% else %}Nothing waiting{% endif %}</span>
+  </a>
+  <a class="tile" href="{% url 'backoffice:dashboard' %}">
+    <span class="tile-icon">📊</span><b>Today</b>
+    <span>Coins sold {{ s.today.deposits|money }} · Profit {{ s.today.ggr|money }}</span>
+  </a>
+  <a class="tile" href="{% url 'admin:accounts_user_changelist' %}">
+    <span class="tile-icon">👥</span><b>Players</b><span>Search, view, suspend</span>
+  </a>
+  <a class="tile" href="{% url 'admin:games_game_changelist' %}">
+    <span class="tile-icon">🎮</span><b>Game settings</b><span>Price, prizes, times</span>
+  </a>
+  <a class="tile" href="{% url 'admin:core_platformsettings_changelist' %}">
+    <span class="tile-icon">⚙️</span><b>Platform settings</b><span>Coins, bonus, limits</span>
+  </a>
+  <a class="tile" href="{% url 'backoffice:report' %}">
+    <span class="tile-icon">📈</span><b>Reports</b><span>Daily figures, CSV</span>
+  </a>
+</div>
+<h2 class="home-subtitle">Everything else</h2>
+{{ block.super }}
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

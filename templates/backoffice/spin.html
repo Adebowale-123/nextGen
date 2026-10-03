@@ -8,20 +8,20 @@
 <section class="card">
   <h3>Waiting for spin</h3>
   {% if awaiting %}
-    <p class="muted">Leave <b>Consolation winners</b> blank to pay as many ₦ consolation prizes as the prize pool covers. Enter a number to choose exactly how many win: if it costs more than the pool, the company pays the difference; if less, the unused money carries over to the next game.</p>
+    <p class="muted">The split is automatic: the company keeps its share, and the prize money pays one grand prize (when it's covered) plus as many cash prizes as it can. Only staff see these figures.</p>
     <ul class="list">
       {% for d in awaiting %}
-        <li class="list-item">
+        <li class="list-item spin-row">
           <div class="grow">
-            <div class="title">{{ d.game.name }} #{{ d.draw_number }}</div>
-            <div class="sub">Closed {{ d.closes_at|date:"D j M, g:i A" }} · {{ d.ticket_count }} players · sales {{ d.total_stake|money:d.game.currency }} · prize pool ≈ {{ d.pool_estimate|money:d.game.currency }}</div>
+            <div class="title">{{ d.game.name }} #{{ d.draw_number }} <span class="sub">· closed {{ d.closes_at|date:"D j M, g:i A" }} · {{ d.ticket_count }} plays</span></div>
+            <div class="plan">
+              <span>Sales <b>{{ d.plan.sales|money }}</b></span>
+              <span>Company <b>{{ d.plan.company_share|money }}</b></span>
+              <span>Prize money <b>{{ d.plan.prize_pool|money }}</b></span>
+              <span>Grand prize <b>{% if d.plan.grand_winners %}1 × {{ d.game.grand_prize|money }}{% else %}not covered yet{% endif %}</b></span>
+              <span>Cash prizes <b>{{ d.plan.consolation_winners }} × {{ d.game.consolation_prize|money }}</b></span>
+            </div>
           </div>
-          <label class="winners-input">
-            <span class="sub">Consolation winners</span>
-            <input type="number" min="0" step="1" data-winners
-                   value="{% if d.game.consolation_winners is not None %}{{ d.game.consolation_winners }}{% endif %}"
-                   placeholder="Auto ({{ d.auto_winners }})">
-          </label>
           <button class="btn btn-primary" type="button" data-spin-url="{% url 'backoffice:spin' d.pk %}" data-label="{{ d.game.name }} #{{ d.draw_number }}">🎡 Spin now</button>
         </li>
       {% endfor %}
@@ -38,15 +38,14 @@
   </div>
   <div data-spin-summary hidden>
     <div class="stat-row" style="margin-top:20px">
-      <div class="stat"><div class="label">Players</div><div class="value" data-k="players"></div></div>
+      <div class="stat"><div class="label">Plays</div><div class="value" data-k="players"></div></div>
       <div class="stat"><div class="label">Sales</div><div class="value" data-k="sales"></div></div>
-      <div class="stat"><div class="label">Prize pool (60%)</div><div class="value" data-k="prize_pool"></div></div>
-      <div class="stat"><div class="label">Company (40%)</div><div class="value" data-k="company_share"></div></div>
-      <div class="stat"><div class="label">Grand winners</div><div class="value" data-k="grand_winners"></div></div>
-      <div class="stat"><div class="label">Consolation winners</div><div class="value" data-k="consolation_winners"></div></div>
+      <div class="stat"><div class="label">Company profit</div><div class="value" data-k="company_share"></div></div>
+      <div class="stat"><div class="label">Prize money</div><div class="value" data-k="prize_pool"></div></div>
+      <div class="stat"><div class="label">Grand prize winners</div><div class="value" data-k="grand_winners"></div></div>
+      <div class="stat"><div class="label">Cash prize winners</div><div class="value" data-k="consolation_winners"></div></div>
       <div class="stat"><div class="label">Total paid</div><div class="value" data-k="total_paid"></div></div>
-      <div class="stat"><div class="label">Carried over</div><div class="value" data-k="carried_over"></div></div>
-      <div class="stat"><div class="label">Company top-up</div><div class="value" data-k="company_topup"></div></div>
+      <div class="stat"><div class="label">Carried to next game</div><div class="value" data-k="carried_over"></div></div>
     </div>
     <div class="row" style="margin-top:16px">
       <a class="btn btn-ghost" data-result-link href="#">View public result</a>
@@ -60,7 +59,7 @@
     <h3>Open now</h3>
     <ul class="list">
       {% for d in open_now %}
-        <li class="list-item"><div class="grow"><div class="title">{{ d.game.name }} #{{ d.draw_number }}</div><div class="sub">{{ d.ticket_count }} players · {{ d.total_stake|money:d.game.currency }}</div></div>
+        <li class="list-item"><div class="grow"><div class="title">{{ d.game.name }} #{{ d.draw_number }}</div><div class="sub">{{ d.ticket_count }} plays · {{ d.total_stake|money:d.game.currency }}</div></div>
           <span class="countdown small" data-countdown="{{ d.closes_at.isoformat }}">--</span></li>
       {% empty %}<li class="empty">No game open.</li>{% endfor %}
     </ul>
@@ -70,7 +69,7 @@
     <ul class="list">
       {% for d in recent %}
         <li class="list-item"><div class="grow"><div class="title"><a href="{% url 'games:result_detail' d.pk %}">{{ d.game.name }} #{{ d.draw_number }}</a></div>
-          <div class="sub">{{ d.winning_numbers|join:", " }} · {{ d.winner_count }} winners · {{ d.total_prizes|money:d.game.currency }} paid{% if d.spun_by %} · by {{ d.spun_by }}{% else %} · auto{% endif %}</div></div></li>
+          <div class="sub">{{ d.winning_numbers|join:", " }} · {{ d.winner_count }} winners · paid {{ d.total_prizes|money:d.game.currency }} · profit {{ d.house_share|money:d.game.currency }}{% if d.spun_by %} · by {{ d.spun_by }}{% else %} · auto{% endif %}</div></div></li>
       {% empty %}<li class="empty">No spins yet.</li>{% endfor %}
     </ul>
   </section>
@@ -87,10 +86,7 @@
 
   document.querySelectorAll("[data-spin-url]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      const winnersInput = btn.closest("li").querySelector("[data-winners]");
-      const winners = winnersInput.value.trim();
-      const howMany = winners === "" ? "automatic number of" : winners;
-      if (!confirm(`Spin ${btn.dataset.label} now with ${howMany} consolation winners? Winners are paid immediately.`)) return;
+      if (!confirm(`Spin ${btn.dataset.label} now? Winners are paid immediately.`)) return;
       document.querySelectorAll("[data-spin-url]").forEach((b) => (b.disabled = true));
       stage.hidden = false;
       stage.querySelector("[data-spin-title]").textContent = `Spinning ${btn.dataset.label}…`;
@@ -101,8 +97,7 @@
       });
       let data;
       try {
-        const body = new URLSearchParams({ winners });
-        const res = await fetch(btn.dataset.spinUrl, { method: "POST", headers: { "X-CSRFToken": csrf }, body });
+        const res = await fetch(btn.dataset.spinUrl, { method: "POST", headers: { "X-CSRFToken": csrf } });
         data = await res.json();
       } catch (e) {
         data = { ok: false, error: "Network error — refresh and check the result." };

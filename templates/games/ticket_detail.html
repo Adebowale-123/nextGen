@@ -15,7 +15,7 @@
   {% if winning %}
     <p class="mb-0">Winning numbers:</p>
     <div class="balls" style="margin:8px 0 16px">{% for n in winning %}<span class="ball win">{{ n }}</span>{% endfor %}</div>
-    <p>Matched <b>{{ ticket.match_count|default:0 }}</b>{% if ticket.prize_amount %} — <b>{{ ticket.prize_label|default:ticket.prize_tier.name }}</b>, {{ ticket.prize_amount|coins }} credited to your wallet{% elif ticket.draw.game.is_spin and ticket.match_count %} — matched, but the prize pool was used up by players with more matches this time{% endif %}.</p>
+    <p>Matched <b>{{ ticket.match_count|default:0 }}</b>{% if ticket.prize_amount %} — <b>{{ ticket.prize_label|default:ticket.prize_tier.name }}</b>, {{ ticket.prize_amount|money:ticket.draw.game.currency }} paid into your winnings{% elif ticket.draw.game.is_spin and ticket.match_count %} — other tickets were closer this time{% endif %}.</p>
   {% elif ticket.draw.game.is_spin %}
     <div class="alert alert-info">The game closes at {{ ticket.draw.closes_at|date:"g:i A" }}. Winners are announced after the spin — we'll notify you if you win.</div>
   {% endif %}
