@@ -1,10 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Play daily, win big{% endblock %}
+{% block title %}Play and win up to ₦100,000{% endblock %}
 {% block content %}
-<section class="hero">
-  <h1>Play once.<br><span class="glow-text">Win up to ₦100,000.</span></h1>
-  <p class="lead">One tap gives you 4 lucky numbers. Two games every day. New players get a ₦500 welcome bonus.</p>
-  <a class="btn btn-primary btn-lg" href="{% url 'accounts:register' %}">Get started</a>
+<section class="hero sparkle-zone">
+  <span class="sparkle s1" aria-hidden="true"></span><span class="sparkle s2" aria-hidden="true"></span>
+  <span class="sparkle s3" aria-hidden="true"></span><span class="sparkle s4" aria-hidden="true"></span>
+  <span class="sparkle s5" aria-hidden="true"></span><span class="sparkle s6" aria-hidden="true"></span>
+  <span class="sparkle s7" aria-hidden="true"></span><span class="sparkle s8" aria-hidden="true"></span>
+  <h1>Play and<br><span class="glow-text">Win up to ₦100,000.</span></h1>
+  <p class="lead">One tap gives you 4 lucky numbers. Two games every day. New players get 50 free coins to start.</p>
+  <a class="btn btn-primary btn-lg btn-shine" href="{% url 'accounts:register' %}">Get started</a>
   <p class="muted" style="margin-top:14px">Already have an account? <a href="{% url 'accounts:login' %}">Log in</a></p>
 </section>
 
@@ -18,8 +22,8 @@
 {% endif %}
 
 <section class="grid grid-3 how" style="margin-top:36px">
-  <div class="center"><div class="step-num">1</div><h3>Sign up</h3><p class="muted mb-0">Use your phone number or email and get ₦500 to play.</p></div>
+  <div class="center"><div class="step-num">1</div><h3>Sign up</h3><p class="muted mb-0">Use your phone number or email and get 50 free coins.</p></div>
   <div class="center"><div class="step-num">2</div><h3>Press Play Game</h3><p class="muted mb-0">Your 4 numbers are generated instantly.</p></div>
-  <div class="center"><div class="step-num">3</div><h3>Watch the spin</h3><p class="muted mb-0">Winnings go straight into your wallet.</p></div>
+  <div class="center"><div class="step-num">3</div><h3>Watch the spin</h3><p class="muted mb-0">Cash prizes go straight into your winnings.</p></div>
 </section>
 {% endblock %}

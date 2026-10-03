@@ -405,3 +405,90 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .balance-pair .balance-card { background: var(--surface); border-color: var(--border); }
 .balance-pair .coins-card { background: linear-gradient(135deg, #fff6c9, #fffdf5); border-color: #f6dd9b; }
 .balance-pair .balance-amount { font-size: clamp(1.7rem, 5vw, 2.3rem); }
+
+/* =====================================================================
+   Sparkle theme: brighter electric blue, glossy gradients, shine & glow.
+   ===================================================================== */
+:root {
+  --primary: #0a7cff;
+  --primary-2: #0058e6;
+  --sky: #e6f2ff;
+  --accent: #0a7cff;
+  --brand-grad: linear-gradient(135deg, #00c2ff 0%, #0a7cff 45%, #3d5bff 100%);
+  --brand-glow: 0 8px 24px rgba(10, 124, 255, .38), 0 0 0 1px rgba(255, 255, 255, .25) inset;
+  --bg-glow: radial-gradient(900px 420px at 15% -5%, rgba(0, 194, 255, .20), transparent 60%),
+             radial-gradient(800px 420px at 95% 0%, rgba(61, 91, 255, .16), transparent 60%),
+             linear-gradient(180deg, #e9f4ff 0, #f4f9ff 360px);
+}
+body { background: var(--bg-glow) no-repeat, #f4f9ff; }
+
+/* Buttons: glossy gradient with a soft glow */
+.btn-primary, .btn-accent, .price-pill, .balance-pill .plus, .brand-mark {
+  background: var(--brand-grad); color: #fff; border: 0; box-shadow: var(--brand-glow);
+}
+.btn-primary:hover, .btn-accent:hover, .price-pill:hover { filter: brightness(1.1) saturate(1.1); }
+.btn-ghost { color: var(--primary-2); }
+.btn-ghost:hover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(10,124,255,.12); }
+
+/* Shine sweep across the main call-to-action buttons */
+.btn-shine, .game-actions .btn-primary, .coins-card .btn-primary { position: relative; overflow: hidden; isolation: isolate; }
+.btn-shine::after, .game-actions .btn-primary::after, .coins-card .btn-primary::after {
+  content: ""; position: absolute; inset: -40% auto -40% -60%; width: 45%; z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: skewX(-20deg); animation: shine 3.2s ease-in-out infinite;
+}
+@keyframes shine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+
+/* Headline: shimmering gradient text */
+.hero h1 .glow-text {
+  background: linear-gradient(90deg, #0058e6, #00c2ff, #3d5bff, #00c2ff, #0058e6);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 6s linear infinite; filter: drop-shadow(0 6px 18px rgba(10,124,255,.25));
+}
+@keyframes shimmer { to { background-position: 300% 0; } }
+
+/* Twinkling sparkles around the hero */
+.sparkle-zone { position: relative; }
+.sparkle { position: absolute; width: 20px; height: 20px; pointer-events: none; filter: drop-shadow(0 0 6px rgba(0,194,255,.9));
+  background: radial-gradient(circle, #fff 0 18%, transparent 20%),
+              conic-gradient(from 45deg, transparent 0 20%, #00c2ff 25%, transparent 30% 45%, #00c2ff 50%,
+                              transparent 55% 70%, #00c2ff 75%, transparent 80% 95%, #00c2ff 100%);
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  animation: twinkle 2.6s ease-in-out infinite; opacity: 0; }
+.sparkle.s1 { top: 18%; left: 12%; animation-delay: 0s; }
+.sparkle.s2 { top: 8%; left: 30%; width: 10px; height: 10px; animation-delay: .7s; }
+.sparkle.s3 { top: 22%; right: 14%; width: 18px; height: 18px; animation-delay: 1.2s; }
+.sparkle.s4 { top: 55%; left: 8%; width: 10px; height: 10px; animation-delay: 1.8s; }
+.sparkle.s5 { top: 62%; right: 10%; animation-delay: .4s; }
+.sparkle.s6 { top: 6%; right: 32%; width: 9px; height: 9px; animation-delay: 2.1s; }
+.sparkle.s7 { bottom: 12%; left: 24%; width: 12px; height: 12px; animation-delay: 1.5s; }
+.sparkle.s8 { bottom: 18%; right: 26%; width: 11px; height: 11px; animation-delay: .9s; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+
+/* Cards: crisp white with a light-blue glow */
+.card { box-shadow: 0 1px 2px rgba(10, 60, 140, .05), 0 10px 30px rgba(10, 124, 255, .08); }
+.game-card { border: 1px solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #7fd8ff, #0a7cff, #9aa8ff) border-box; }
+.game-card .trophy { background: radial-gradient(circle at 30% 30%, #fff6c9, #ffe27a); color: #b07800; box-shadow: 0 4px 14px rgba(255, 196, 0, .35); }
+.game-card .price { background: var(--brand-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.prize-strip b { background: var(--brand-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.game-clock { background: linear-gradient(135deg, #e3f3ff, #eef1ff); }
+.countdown { color: var(--primary-2); text-shadow: 0 0 18px rgba(10,124,255,.25); }
+
+/* Numbers */
+.ball.win, .pick.selected, .reel.landed { background: radial-gradient(circle at 30% 28%, #bff0ff 0, #33b5ff 28%, #0a7cff 60%, #3d5bff 100%);
+  box-shadow: 0 6px 16px rgba(10,124,255,.45), inset 0 -3px 6px rgba(0,0,0,.12); }
+
+/* Header & nav */
+.site-header { background: rgba(255, 255, 255, .82); }
+.brand span b { background: var(--brand-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.main-nav a.active, .main-nav a:hover { color: var(--primary-2); background: var(--sky); }
+.tabs a.active { background: var(--brand-grad); border-color: transparent; box-shadow: 0 4px 12px rgba(10,124,255,.3); }
+.step-num { background: var(--brand-grad); color: #fff; box-shadow: var(--brand-glow); }
+
+/* Calm version for people who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::after, .game-actions .btn-primary::after, .coins-card .btn-primary::after { animation: none; display: none; }
+  .hero h1 .glow-text { animation: none; }
+  .sparkle { animation: none; opacity: .7; }
+}
