@@ -605,3 +605,5 @@ h1 { color: #1a1446; }
 
 /* Mobile tab bar */
 .tabbar a.active { color: var(--c-violet); }
+
+.demo-banner.live { background: #ffe3e3; color: #a61b1b; border-bottom-color: #ffb3b3; }

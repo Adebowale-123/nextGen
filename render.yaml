@@ -35,10 +35,16 @@ services:
       # Public test version: sandbox payments only, codes shown on screen, demo banner.
       - key: DEMO_MODE
         value: "true"
+      # Payments: set these in Render -> Environment (they are not overwritten by this file).
+      # PAYMENT_PROVIDERS: mock (sandbox) or paystack. PAYOUT_PROVIDER: mock or paystack.
       - key: PAYMENT_PROVIDERS
-        value: mock
+        sync: false
       - key: PAYOUT_PROVIDER
-        value: mock
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
       - key: KYC_PROVIDER
         value: mock
       # No always-on worker on the free plan: advance games on incoming requests.

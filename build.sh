@@ -10,3 +10,4 @@ python manage.py migrate --no-input
 python manage.py seed_games
 python manage.py setup_roles
 python manage.py ensure_admin
+python manage.py check_payment_setup || true

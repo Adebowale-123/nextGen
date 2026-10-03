@@ -5,7 +5,8 @@
 <div class="row between"><h1 class="mb-0">Back office</h1>
   <form method="post" action="{% url 'backoffice:scheduler_tick' %}">{% csrf_token %}<button class="btn btn-ghost btn-sm" type="submit">▶ Run draw scheduler now</button></form>
 </div>
-<p class="muted">{% now "l j F Y, g:i A" %} (Africa/Lagos)</p>
+<p class="muted">{% now "l j F Y, g:i A" %} (Africa/Lagos) ·
+  Payments: {% if PAYMENT_MODE == "live" %}<span class="badge badge-danger">LIVE — real money</span>{% elif PAYMENT_MODE == "test" %}<span class="badge badge-warning">Paystack TEST mode</span>{% else %}<span class="badge">Sandbox (no real money)</span>{% endif %}</p>
 {% include "backoffice/_nav.html" with active="dashboard" %}
 
 <h3>Work queues</h3>

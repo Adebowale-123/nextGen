@@ -236,10 +236,13 @@ DOJAH_BASE_URL = env("DOJAH_BASE_URL", "https://sandbox.dojah.io")
 # Payments
 # ---------------------------------------------------------------------------
 
-PAYMENT_PROVIDERS = env_list("PAYMENT_PROVIDERS", "mock")  # any of: mock, paystack, flutterwave
-PAYOUT_PROVIDER = env("PAYOUT_PROVIDER", "mock")
-PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", "")
-PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_SECRET_KEY = env("PAYSTACK_SECRET_KEY", "").strip()
+PAYSTACK_PUBLIC_KEY = env("PAYSTACK_PUBLIC_KEY", "").strip()
+# Which checkout players use: mock (sandbox page), paystack or flutterwave. When not set explicitly,
+# Paystack is used as soon as its secret key is present, otherwise the sandbox.
+PAYMENT_PROVIDERS = env_list("PAYMENT_PROVIDERS") or ["paystack" if PAYSTACK_SECRET_KEY else "mock"]
+# Who sends withdrawals. Stays on the sandbox unless set (Paystack transfers need extra account setup).
+PAYOUT_PROVIDER = (env("PAYOUT_PROVIDER") or "mock").strip()
 FLUTTERWAVE_SECRET_KEY = env("FLUTTERWAVE_SECRET_KEY", "")
 FLUTTERWAVE_WEBHOOK_HASH = env("FLUTTERWAVE_WEBHOOK_HASH", "")
 MOCK_GATEWAY_SECRET = env("MOCK_GATEWAY_SECRET", SECRET_KEY + ":mock-gateway")

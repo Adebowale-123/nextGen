@@ -25,7 +25,13 @@
   </svg>
 
   {% if DEMO_MODE %}
+  {% if PAYMENT_MODE == "live" %}
+  <div class="demo-banner live">⚠️ Test version with LIVE payments: real money is charged. Codes are shown on screen.</div>
+  {% elif PAYMENT_MODE == "test" %}
+  <div class="demo-banner">🧪 Test version: payments use Paystack test mode with test cards. No real money is charged.</div>
+  {% else %}
   <div class="demo-banner">🧪 Public demo — no real money. Payments use a test checkout; codes are shown on screen.</div>
+  {% endif %}
   {% endif %}
   <header class="site-header">
     <div class="container">

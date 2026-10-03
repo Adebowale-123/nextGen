@@ -355,3 +355,47 @@ def payout_provider():
 
 def mock_webhook_body(event, data) -> bytes:
     return json.dumps({"event": event, "data": data}, separators=(",", ":")).encode()
+
+
+# ---------------------------------------------------------------------------
+# Mode: sandbox (our test page), test (provider test keys) or live (real money)
+# ---------------------------------------------------------------------------
+
+TEST_KEY_PREFIXES = {"paystack": "sk_test_", "flutterwave": "FLWSECK_TEST"}
+SECRET_SETTINGS = {"paystack": "PAYSTACK_SECRET_KEY", "flutterwave": "FLUTTERWAVE_SECRET_KEY"}
+
+
+def provider_mode(code):
+    if code == "mock":
+        return "sandbox"
+    secret = getattr(settings, SECRET_SETTINGS[code], "")
+    return "test" if secret.startswith(TEST_KEY_PREFIXES[code]) else "live"
+
+
+def payment_mode():
+    """The checkout mode players are on: "sandbox", "test" or "live" (live wins if any provider is live)."""
+    modes = {provider_mode(code) for code in settings.PAYMENT_PROVIDERS if code in PROVIDERS}
+    for mode in ("live", "test"):
+        if mode in modes:
+            return mode
+    return "sandbox"
+
+
+def check_provider(code):
+    """Confirm the provider's keys work with a harmless read-only call. Returns (ok, message)."""
+    if code == "mock":
+        return True, "Sandbox checkout (no keys needed, no real money)."
+    secret = getattr(settings, SECRET_SETTINGS[code], "")
+    if not secret:
+        return False, f"{SECRET_SETTINGS[code]} is not set."
+    provider = get_provider(code)
+    path = "/balance" if code == "paystack" else "/balances"
+    try:
+        data = provider._request("GET", path)
+    except ProviderError as exc:
+        return False, f"Key rejected or provider unreachable: {exc}"
+    mode = provider_mode(code)
+    balances = data.get("data") or []
+    summary = ", ".join(f"{b.get('currency')} {int(b.get('balance', b.get('available_balance', 0)) or 0):,}"
+                        for b in balances if isinstance(b, dict)) or "no balances returned"
+    return True, f"Keys work ({mode.upper()} mode). Balance: {summary}."
