@@ -84,6 +84,8 @@ def segregation_summary(currency="NGN"):
     clearing = balances.get(LedgerAccount.Purpose.PROVIDER_CLEARING, 0)
     return {
         "player_cash": balances.get(LedgerAccount.Purpose.PLAYER_CASH, 0),
+        "player_coins": balances.get(LedgerAccount.Purpose.PLAYER_COINS, 0),
+        "carryover": balances.get(LedgerAccount.Purpose.PRIZE_CARRYOVER, 0),
         "pool_hold": balances.get(LedgerAccount.Purpose.POOL_HOLD, 0),
         "withdrawal_pending": balances.get(LedgerAccount.Purpose.WITHDRAWAL_PENDING, 0),
         "player_liability": player_liability,

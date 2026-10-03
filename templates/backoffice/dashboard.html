@@ -32,7 +32,9 @@
   <section class="card">
     <h3>Fund segregation</h3>
     <table>
-      <tr><td>Player wallets</td><td class="num">{{ segregation.player_cash|money }}</td></tr>
+      <tr><td>Player coins (bought, unplayed)</td><td class="num">{{ segregation.player_coins|money }}</td></tr>
+      <tr><td>Player winnings (withdrawable)</td><td class="num">{{ segregation.player_cash|money }}</td></tr>
+      <tr><td>Prize money carried to next game</td><td class="num">{{ segregation.carryover|money }}</td></tr>
       <tr><td>Stakes held in open draws</td><td class="num">{{ segregation.pool_hold|money }}</td></tr>
       <tr><td>Withdrawals in flight</td><td class="num">{{ segregation.withdrawal_pending|money }}</td></tr>
       <tr><th>Total owed to players</th><th class="num">{{ segregation.player_liability|money }}</th></tr>

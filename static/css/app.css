@@ -492,3 +492,116 @@ body { background: var(--bg-glow) no-repeat, #f4f9ff; }
   .hero h1 .glow-text { animation: none; }
   .sparkle { animation: none; opacity: .7; }
 }
+
+/* =====================================================================
+   Colourful palette: blue + violet + pink + gold + mint.
+   ===================================================================== */
+:root {
+  --c-blue: #0a7cff;  --c-cyan: #00c2ff;  --c-violet: #7b5cff;  --c-pink: #ff4fa3;
+  --c-gold: #ffb800;  --c-orange: #ff7a1a; --c-mint: #12c99b;   --c-coral: #ff6b6b;
+  --grad-main: linear-gradient(135deg, #00c2ff 0%, #0a7cff 35%, #7b5cff 70%, #ff4fa3 100%);
+  --grad-play: linear-gradient(135deg, #0a7cff 0%, #5b6cff 50%, #9b4dff 100%);
+  --grad-gold: linear-gradient(135deg, #ffd23f 0%, #ffb800 45%, #ff7a1a 100%);
+  --grad-mint: linear-gradient(135deg, #3ee6b0, #12c99b 55%, #0aa5c2);
+  --grad-pink: linear-gradient(135deg, #ff8fc7, #ff4fa3 55%, #c246ff);
+  --brand-grad: var(--grad-play);
+}
+body {
+  background:
+    radial-gradient(700px 380px at 8% -4%, rgba(0, 194, 255, .22), transparent 60%),
+    radial-gradient(640px 360px at 92% 2%, rgba(155, 77, 255, .18), transparent 60%),
+    radial-gradient(560px 320px at 50% 105%, rgba(255, 79, 163, .10), transparent 60%),
+    radial-gradient(520px 300px at 100% 60%, rgba(18, 201, 155, .08), transparent 60%),
+    #f6f8ff no-repeat;
+  background-attachment: fixed;
+}
+
+/* Brand & headings */
+.brand-mark { background: var(--grad-main); }
+.brand span b, .hero h1 .glow-text {
+  background: linear-gradient(90deg, #0a7cff, #7b5cff, #ff4fa3, #ffb800, #7b5cff, #0a7cff);
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand span b { animation: shimmer 10s linear infinite; }
+h1 { color: #1a1446; }
+
+/* Buttons */
+.btn-primary, .btn-accent, .brand-mark, .tabs a.active, .step-num { background: var(--grad-play); }
+.btn-primary, .btn-accent { box-shadow: 0 8px 22px rgba(91, 108, 255, .38); }
+.coins-card .btn-primary, .balance-pill .plus, a.btn[href*="/wallet/deposit/"] {
+  background: var(--grad-gold); color: #3a2500; box-shadow: 0 8px 22px rgba(255, 160, 0, .38);
+}
+.price-pill { background: var(--grad-gold); color: #3a2500; box-shadow: 0 8px 22px rgba(255, 160, 0, .4); }
+.btn-ghost { background: #fff; border-color: #dcd6ff; color: #4b3bd6; }
+.btn-ghost:hover { border-color: var(--c-violet); box-shadow: 0 0 0 3px rgba(123, 92, 255, .14); }
+.btn-danger { background: #fff0f6; border-color: #ffc2dc; color: #d61f6e; }
+
+/* Header pill */
+.balance-pill { background: linear-gradient(135deg, #fff8e0, #fff); border-color: #ffe08a; color: #6b4500; }
+
+/* Cards & sections */
+.game-card { background: linear-gradient(#fff, #fff) padding-box, var(--grad-main) border-box; }
+.game-card .trophy { background: var(--grad-gold); color: #fff; box-shadow: 0 6px 16px rgba(255, 160, 0, .45); }
+.game-card .price { background: var(--grad-gold); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.prize-strip > div:nth-child(1) { background: linear-gradient(135deg, #fff6d6, #fffdf3); border-color: #ffe08a; }
+.prize-strip > div:nth-child(1) b { background: var(--grad-gold); -webkit-background-clip: text; background-clip: text; }
+.prize-strip > div:nth-child(2) { background: linear-gradient(135deg, #f1ecff, #fbf9ff); border-color: #d9cfff; }
+.prize-strip > div:nth-child(2) b { background: var(--grad-pink); -webkit-background-clip: text; background-clip: text; }
+.game-clock { background: linear-gradient(135deg, #e6f4ff 0%, #efeaff 60%, #ffeef7 100%); }
+.countdown { background: var(--grad-play); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
+.countdown.soft { background: linear-gradient(135deg, #8a7fd6, #ff7ab8); -webkit-background-clip: text; background-clip: text; }
+.balance-pair .coins-card { background: linear-gradient(135deg, #fff3c4 0%, #fff9e6 55%, #ffffff 100%); border-color: #ffe08a; }
+.balance-pair .balance-card:not(.coins-card) { background: linear-gradient(135deg, #e3fbf2 0%, #f3fffb 55%, #ffffff 100%); border-color: #b5f0dc; }
+.balance-pair .balance-card:not(.coins-card) .balance-amount { color: #0b8f6f; }
+.card.glow { background: linear-gradient(135deg, #e6f4ff, #f2edff 60%, #fff); border-color: #d4ccff; }
+
+/* Stat boxes: each its own soft colour */
+.stat-row .stat:nth-child(5n+1) { background: linear-gradient(135deg, #e6f4ff, #fff); border-color: #c6e2ff; }
+.stat-row .stat:nth-child(5n+2) { background: linear-gradient(135deg, #f1ecff, #fff); border-color: #ddd3ff; }
+.stat-row .stat:nth-child(5n+3) { background: linear-gradient(135deg, #e3fbf2, #fff); border-color: #bdeedd; }
+.stat-row .stat:nth-child(5n+4) { background: linear-gradient(135deg, #fff6d6, #fff); border-color: #ffe7a3; }
+.stat-row .stat:nth-child(5n+5) { background: linear-gradient(135deg, #ffeef6, #fff); border-color: #ffd0e5; }
+.kpi:nth-child(4n+1) { border-top: 4px solid var(--c-blue); }
+.kpi:nth-child(4n+2) { border-top: 4px solid var(--c-violet); }
+.kpi:nth-child(4n+3) { border-top: 4px solid var(--c-mint); }
+.kpi:nth-child(4n+4) { border-top: 4px solid var(--c-gold); }
+.kpi .value { background: var(--grad-play); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.kpi .value.neg { background: linear-gradient(135deg, #ff6b6b, #ff4fa3); -webkit-background-clip: text; background-clip: text; }
+
+/* Steps: a different colour each */
+.how > div:nth-child(1) .step-num { background: var(--grad-play); }
+.how > div:nth-child(2) .step-num { background: var(--grad-pink); box-shadow: 0 8px 20px rgba(255, 79, 163, .35); }
+.how > div:nth-child(3) .step-num { background: var(--grad-gold); color: #3a2500; box-shadow: 0 8px 20px rgba(255, 160, 0, .35); }
+
+/* Lottery balls in bright alternating colours */
+.ball.win, .reel.landed { color: #fff; }
+.balls .ball.win:nth-child(5n+1), .reels .reel.landed:nth-child(4n+1), .ticket-balls .ball:nth-child(4n+1) { background: radial-gradient(circle at 30% 28%, #bfeeff, #00a8ff 55%, #0a5cff); }
+.balls .ball.win:nth-child(5n+2), .reels .reel.landed:nth-child(4n+2), .ticket-balls .ball:nth-child(4n+2) { background: radial-gradient(circle at 30% 28%, #e4d9ff, #8a5cff 55%, #5a2fd6); }
+.balls .ball.win:nth-child(5n+3), .reels .reel.landed:nth-child(4n+3), .ticket-balls .ball:nth-child(4n+3) { background: radial-gradient(circle at 30% 28%, #ffd6ea, #ff4fa3 55%, #d61f6e); }
+.balls .ball.win:nth-child(5n+4), .reels .reel.landed:nth-child(4n+4), .ticket-balls .ball:nth-child(4n+4) { background: radial-gradient(circle at 30% 28%, #fff1b8, #ffb800 55%, #e07a00); color: #3a2500; }
+.balls .ball.win:nth-child(5n+5) { background: radial-gradient(circle at 30% 28%, #c8ffe9, #12c99b 55%, #08866a); }
+.ball.hit { background: var(--grad-mint); border-color: transparent; box-shadow: 0 4px 12px rgba(18, 201, 155, .4); }
+.pick.selected { background: var(--grad-play); }
+
+/* Badges & alerts */
+.badge-primary { background: #efeaff; color: #5a3fe0; }
+.badge-accent { background: #fff3cc; color: #9a6200; }
+.badge-success { background: #dcfaf0; color: #0b8f6f; }
+.alert-info { background: linear-gradient(135deg, #eaf5ff, #f3efff); border-color: #cfdcff; }
+.alert-success { background: linear-gradient(135deg, #e3fbf2, #f2fffa); border-color: #b5f0dc; }
+
+/* Coin packages: warm gold */
+.coin-package { background: linear-gradient(90deg, #ffefb0 0%, #fff7d6 45%, #fffdf5 100%); border-color: #ffe08a; }
+.coin-count { background: linear-gradient(135deg, #3a2500, #6b4500); }
+.custom-coins { border-color: #d4c6ff; background: linear-gradient(135deg, #fff, #faf8ff); }
+
+/* Back office navigation */
+.bo-nav .btn-primary { background: var(--grad-main); }
+
+/* Sparkles in mixed colours */
+.sparkle.s2, .sparkle.s6 { filter: drop-shadow(0 0 6px rgba(255, 79, 163, .9)); }
+.sparkle.s3, .sparkle.s7 { filter: drop-shadow(0 0 6px rgba(255, 184, 0, .95)); }
+.sparkle.s4 { filter: drop-shadow(0 0 6px rgba(123, 92, 255, .9)); }
+
+/* Mobile tab bar */
+.tabbar a.active { color: var(--c-violet); }
