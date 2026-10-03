@@ -10,11 +10,17 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.core.config import RULES
-from apps.core.money import format_money
+from apps.core.money import coin_value, format_coins
 from apps.core.decorators import verified_required
 
 from . import rng, services
 from .models import Draw, Game, Ticket
+
+
+def coins_needed(shortfall):
+    """Whole coins to buy to cover a shortfall (at least the minimum deposit)."""
+    need = max(shortfall, RULES["MIN_DEPOSIT"])
+    return -(-need // coin_value())
 
 
 def lobby(request):
@@ -50,8 +56,7 @@ def play_game(request, slug):
         ticket = services.play_spin_game(request.user, game.pk,
                                          idempotency_key=request.POST.get("purchase_token") or None)
     except services.NeedsDeposit as exc:
-        amount = max(exc.shortfall, RULES["MIN_DEPOSIT"]) / 100
-        deposit_url = f"{reverse('payments:deposit')}?amount={amount:.2f}"
+        deposit_url = f"{reverse('payments:deposit')}?coins={coins_needed(exc.shortfall)}"
         if wants_json:
             return JsonResponse({"ok": False, "error": f"{exc} Add money to play.", "deposit_url": deposit_url})
         messages.warning(request, f"{exc} Add money to continue.")
@@ -67,7 +72,7 @@ def play_game(request, slug):
             "numbers": ticket.numbers,
             "serial": ticket.serial,
             "game": game.name,
-            "paid": format_money(ticket.stake, game.currency),
+            "paid": format_coins(ticket.stake),
             "from_bonus": ticket.bonus_stake > 0,
             "closes_at": timezone.localtime(ticket.draw.closes_at).strftime("%I:%M %p").lstrip("0"),
             "ticket_url": reverse("games:ticket_detail", args=[ticket.serial]),
@@ -103,8 +108,7 @@ def draw_detail(request, pk):
             )
         except services.NeedsDeposit as exc:
             messages.warning(request, f"{exc} Top up to continue.")
-            amount = max(exc.shortfall, RULES["MIN_DEPOSIT"]) / 100
-            return redirect(f"{reverse('payments:deposit')}?amount={amount:.2f}")
+            return redirect(f"{reverse('payments:deposit')}?coins={coins_needed(exc.shortfall)}")
         except services.GameError as exc:
             messages.error(request, str(exc))
             return redirect("games:draw_detail", pk=draw.pk)

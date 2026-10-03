@@ -1,23 +1,29 @@
 {% extends "base.html" %}
 {% load nextgen %}
-{% block title %}Deposit{% endblock %}
+{% block title %}Buy coins{% endblock %}
 {% block container_class %}narrow{% endblock %}
 {% block content %}
-<div class="row between"><h1 class="mb-0">Deposit</h1><a href="{% url 'payments:wallet' %}">← Wallet</a></div>
-<p class="muted">Balance: <b>{{ wallet.account.balance|money:wallet.currency }}</b> · Today: {{ deposited_today|money }} of {{ deposit_limit|money }}</p>
-<form method="post" class="card">
+<div class="row between"><h1 class="mb-0">Buy coins</h1><a href="{% url 'payments:wallet' %}">← Wallet</a></div>
+<p class="muted">You have <b>{{ wallet.account.balance|coins }}</b> · 1 coin = {% coin_value_naira %}</p>
+<form method="post" class="card" data-coin-form data-coin-value="{{ coin_value }}">
   {% csrf_token %}
-  {% include "partials/form_field.html" with field=form.amount %}
-  <div class="chips" style="margin:-4px 0 18px">
-    {% for a in quick_amounts %}<button type="button" class="chip" data-amount="{{ a|major }}">{{ a|money }}</button>{% endfor %}
+  <span class="label">Choose a package</span>
+  <div class="package-grid">
+    {% for coins, minor in packages %}
+      <button type="button" class="package" data-amount="{{ coins }}">
+        <b>{{ coins }}</b><span>coins</span><small>{{ minor|money }}</small>
+      </button>
+    {% endfor %}
   </div>
+  {% include "partials/form_field.html" with field=form.amount %}
+  <p class="center" style="margin:-6px 0 16px">You pay <b data-naira-total>₦0.00</b></p>
   <div class="form-field">
     <span class="label">Pay with</span>
     <div class="choice-grid">{% for radio in form.channel %}<div>{{ radio }}</div>{% endfor %}</div>
     {{ form.channel.errors }}
   </div>
   {% include "partials/form_field.html" with field=form.provider %}
-  <button class="btn btn-accent btn-block btn-lg" type="submit">Continue to secure checkout</button>
-  <p class="faint center" style="margin:12px 0 0;font-size:.85rem">You'll be redirected to our payment partner. Your wallet is credited once they confirm the payment.</p>
+  <button class="btn btn-primary btn-block btn-lg" type="submit">Continue to payment</button>
+  <p class="faint center" style="margin:12px 0 0;font-size:.85rem">Bought today: {{ deposited_today|coins }} of your {{ deposit_limit|coins }} daily limit. Coins are added as soon as payment is confirmed.</p>
 </form>
 {% endblock %}

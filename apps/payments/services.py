@@ -13,7 +13,7 @@ from django.utils import timezone
 from apps.core.config import RULES
 from apps.compliance import services as compliance
 from apps.compliance.models import RiskFlag
-from apps.core.money import format_money
+from apps.core.money import format_coins, format_money
 from apps.ledger.models import JournalTransaction, LedgerAccount
 from apps.ledger.services import credit, debit, get_system_account, lock_wallet, post_transaction
 from apps.notifications.services import notify
@@ -119,7 +119,7 @@ def _credit_deposit(deposit_id, result) -> Deposit:
     deposit.raw_response = {**deposit.raw_response, "verification": _jsonable(result.raw)}
     deposit.save()
     notify(deposit.user, "Deposit received",
-           f"{format_money(deposit.amount, deposit.currency)} has been added to your wallet.",
+           f"{format_coins(deposit.amount, with_naira=True)} has been added to your wallet.",
            kind="wallet", link=reverse("payments:wallet"), sms=True)
     return deposit
 
@@ -290,7 +290,7 @@ def request_withdrawal(user, *, amount, destination_id, currency=None) -> Withdr
     if not user.can_withdraw_tier:
         raise PaymentError("Complete Tier 2 ID verification before withdrawing.")
     if amount < RULES["MIN_WITHDRAWAL"]:
-        raise PaymentError(f"Minimum withdrawal is {format_money(RULES['MIN_WITHDRAWAL'], currency)}.")
+        raise PaymentError(f"Minimum withdrawal is {format_coins(RULES['MIN_WITHDRAWAL'], with_naira=True)}.")
     destination = PayoutAccount.objects.filter(pk=destination_id, user=user, is_active=True).first()
     if destination is None:
         raise PaymentError("Select one of your payout accounts.")
@@ -302,7 +302,7 @@ def request_withdrawal(user, *, amount, destination_id, currency=None) -> Withdr
         if wallet.wagering_remaining > 0:
             raise PaymentError(
                 f"Deposits must be played through before withdrawal. "
-                f"Play {format_money(wallet.wagering_remaining, currency)} more to unlock withdrawals."
+                f"Play {format_coins(wallet.wagering_remaining)} more to unlock withdrawals."
             )
         flags = assess_withdrawal_risk(user, amount, destination)
         withdrawal = Withdrawal.objects.create(
@@ -324,7 +324,7 @@ def request_withdrawal(user, *, amount, destination_id, currency=None) -> Withdr
         )
         if flags:
             notify(user, "Withdrawal under review",
-                   f"Your withdrawal of {format_money(amount, currency)} is being reviewed. This usually takes a few hours.",
+                   f"Your withdrawal of {format_coins(amount, with_naira=True)} is being reviewed. This usually takes a few hours.",
                    kind="wallet")
         else:
             transaction.on_commit(lambda: process_payout_task.enqueue(withdrawal.pk))
@@ -379,7 +379,7 @@ def complete_withdrawal(withdrawal_id) -> Withdrawal:
     withdrawal.completed_at = timezone.now()
     withdrawal.save(update_fields=["status", "completed_at"])
     notify(withdrawal.user, "Withdrawal sent",
-           f"{format_money(withdrawal.amount, withdrawal.currency)} is on its way to {withdrawal.destination}.",
+           f"{format_coins(withdrawal.amount, with_naira=True)} is on its way to {withdrawal.destination}.",
            kind="wallet", link=reverse("payments:wallet"), sms=True)
     return withdrawal
 
@@ -415,7 +415,7 @@ def fail_withdrawal(withdrawal_id, reason) -> Withdrawal:
         return withdrawal
     _reverse_hold(withdrawal, Withdrawal.Status.FAILED, reason)
     notify(withdrawal.user, "Withdrawal failed",
-           f"Your withdrawal of {format_money(withdrawal.amount, withdrawal.currency)} failed and the funds are back in your wallet.",
+           f"Your withdrawal of {format_coins(withdrawal.amount, with_naira=True)} failed and the funds are back in your wallet.",
            kind="wallet", sms=True)
     return withdrawal
 
@@ -441,7 +441,7 @@ def reject_withdrawal(withdrawal_id, reviewer, reason) -> Withdrawal:
         raise PaymentError("Only withdrawals under review can be rejected.")
     _reverse_hold(withdrawal, Withdrawal.Status.REJECTED, reason, reviewer=reviewer)
     notify(withdrawal.user, "Withdrawal declined",
-           f"Your withdrawal of {format_money(withdrawal.amount, withdrawal.currency)} was declined: {reason}. "
+           f"Your withdrawal of {format_coins(withdrawal.amount, with_naira=True)} was declined: {reason}. "
            "The funds are back in your wallet.", kind="wallet", email=True)
     return withdrawal
 

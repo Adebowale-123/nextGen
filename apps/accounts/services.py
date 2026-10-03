@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from apps.core.config import RULES
 from apps.compliance.services import get_settings as get_rg_settings
-from apps.core.money import format_money
+from apps.core.money import format_coins
 from apps.ledger.models import JournalTransaction, LedgerAccount
 from apps.ledger.services import create_wallet, credit, debit, ensure_bonus_account, get_system_account, post_transaction
 from apps.notifications.services import notify, send_email, send_sms
@@ -78,8 +78,8 @@ def grant_welcome_bonus(user):
         idempotency_key=key,
         source=user,
     )
-    notify(user, f"🎁 {format_money(amount, currency)} welcome bonus",
-           f"We've added {format_money(amount, currency)} bonus to your wallet. Use it to play your first game!",
+    notify(user, f"🎁 {format_coins(amount)} welcome bonus",
+           f"We've added {format_coins(amount)} bonus to your wallet. Use it to play your first game!",
            kind="wallet")
     return txn
 

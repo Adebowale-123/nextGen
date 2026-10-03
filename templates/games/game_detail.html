@@ -23,10 +23,10 @@
 <section class="card" style="margin-top:20px">
   <h3>How it works</h3>
   <ol class="steps" style="padding:0;margin:12px 0 0">
-    <li>Press <b>Play Game</b>. It costs {{ game.ticket_price|money:game.currency }} and you instantly get {{ game.pick_count }} numbers from 1–{{ game.number_max }}.</li>
+    <li>Press <b>Play Game</b>. It costs {{ game.ticket_price|coins }} and you instantly get {{ game.pick_count }} numbers from 1–{{ game.number_max }}.</li>
     <li>When the game closes, we spin {{ game.pick_count }} winning numbers.</li>
-    <li>Match all {{ game.pick_count }} to win the <b>grand prize of {{ game.grand_prize|money:game.currency }}</b>.</li>
-    <li>Players who match numbers win <b>{{ game.consolation_prize|money:game.currency }} consolation prizes</b>, best matches first, until the prize pool is used up.</li>
+    <li>Match all {{ game.pick_count }} to win the <b>grand prize of {{ game.grand_prize|coins }}</b>.</li>
+    <li>Players who match numbers win <b>{{ game.consolation_prize|coins }} consolation prizes</b>, best matches first, until the prize pool is used up.</li>
   </ol>
 </section>
 
@@ -43,7 +43,7 @@
   <summary>Prize rules in full</summary>
   <ul style="margin:12px 0 0;padding-left:18px" class="muted">
     <li>{{ game.prize_pool_percent }}% of each game's sales goes into the prize pool.</li>
-    <li>The grand prize of {{ game.grand_prize|money:game.currency }} is guaranteed for anyone matching all {{ game.pick_count }} numbers.</li>
+    <li>The grand prize of {{ game.grand_prize|coins }} is guaranteed for anyone matching all {{ game.pick_count }} numbers.</li>
     <li>If nobody wins the grand prize, the whole pool goes to consolation winners.</li>
     <li>When more players qualify than the pool can pay, those with more matches win first. Ties are decided by a random order fixed by the spin, which anyone can verify.</li>
     <li>Prize money too small for another consolation prize is added to the next game's pool.</li>

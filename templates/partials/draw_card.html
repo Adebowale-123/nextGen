@@ -2,7 +2,7 @@
 <a class="card draw-card simple" href="{% url 'games:draw_detail' draw.pk %}">
   <div class="row between">
     <h3 class="mb-0">{{ draw.game.name }}</h3>
-    <span class="price">{{ draw.game.ticket_price|money:draw.game.currency }}</span>
+    <span class="price">{{ draw.game.ticket_price|coins }}</span>
   </div>
   <div>
     <div class="countdown-label">Closes in</div>

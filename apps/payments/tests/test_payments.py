@@ -22,7 +22,7 @@ class DepositFlowTests(TestCase):
         self.user = make_user()
         self.client.force_login(self.user)
 
-    def start_deposit(self, amount="2500.00", channel="card"):
+    def start_deposit(self, amount="250", channel="card"):  # 250 coins = ₦2,500
         response = self.client.post(reverse("payments:deposit"), {"amount": amount, "channel": channel,
                                                                   "provider": "mock"})
         return Deposit.objects.filter(user=self.user).first(), response

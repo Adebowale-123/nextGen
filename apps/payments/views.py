@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from apps.compliance import services as compliance
 from apps.core.config import RULES
+from apps.core.money import coin_value, coins_to_minor
 from apps.core.decorators import verified_required
 from apps.ledger.models import Entry, JournalTransaction
 from apps.ledger.services import get_wallet
@@ -19,7 +20,7 @@ from .forms import DepositForm, PayoutAccountForm, WithdrawForm
 from .models import Deposit, Withdrawal
 from .providers import PROVIDERS, MockProvider, mock_webhook_body
 
-QUICK_AMOUNTS = [500_00, 1_000_00, 2_000_00, 5_000_00, 10_000_00, 20_000_00]
+COIN_PACKAGES = [50, 100, 200, 500, 1000, 2000]
 HISTORY_FILTERS = {
     "all": None,
     "deposits": [JournalTransaction.Type.DEPOSIT, JournalTransaction.Type.WELCOME_BONUS],
@@ -57,7 +58,7 @@ def wallet(request):
 
 @verified_required
 def deposit(request):
-    form = DepositForm(request.POST or None, initial={"amount": request.GET.get("amount")})
+    form = DepositForm(request.POST or None, initial={"amount": request.GET.get("coins")})
     if request.method == "POST" and form.is_valid():
         try:
             dep = services.initiate_deposit(
@@ -72,7 +73,8 @@ def deposit(request):
             return redirect(dep.checkout_url)
     return render(request, "payments/deposit.html", {
         "form": form,
-        "quick_amounts": QUICK_AMOUNTS,
+        "packages": [(c, coins_to_minor(c)) for c in COIN_PACKAGES],
+        "coin_value": coin_value(),
         "deposit_limit": compliance.effective_deposit_limit(request.user),
         "deposited_today": compliance.deposited_today(request.user),
         "wallet": _wallet(request.user),

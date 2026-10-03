@@ -17,7 +17,7 @@
             {% endif %}
           </div>
           <div class="right">
-            {% if draw.status == 'settled' %}<div class="sub">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }}</div><div class="amount">{{ draw.total_prizes|money:draw.game.currency }}</div>
+            {% if draw.status == 'settled' %}<div class="sub">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }}</div><div class="amount">{{ draw.total_prizes|coins }}</div>
             {% elif draw.status == 'cancelled' %}<span class="badge badge-danger">Cancelled</span>
             {% else %}<span class="badge badge-warning">Settling…</span>{% endif %}
           </div>

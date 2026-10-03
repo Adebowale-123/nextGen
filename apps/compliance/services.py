@@ -7,7 +7,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from apps.core.config import RULES
-from apps.core.money import format_money
+from apps.core.money import format_coins
 
 from .models import ResponsibleGamingSettings, RiskFlag
 
@@ -92,16 +92,16 @@ def check_can_deposit(user, amount):
     if not user.is_contact_verified:
         raise ComplianceError("Verify your phone or email before depositing.")
     if amount < RULES["MIN_DEPOSIT"]:
-        raise ComplianceError(f"Minimum deposit is {format_money(RULES['MIN_DEPOSIT'])}.")
+        raise ComplianceError(f"Minimum deposit is {format_coins(RULES['MIN_DEPOSIT'], with_naira=True)}.")
     if amount > RULES["MAX_DEPOSIT"]:
-        raise ComplianceError(f"Maximum single deposit is {format_money(RULES['MAX_DEPOSIT'])}.")
+        raise ComplianceError(f"Maximum single deposit is {format_coins(RULES['MAX_DEPOSIT'], with_naira=True)}.")
     limit = effective_deposit_limit(user)
     used = deposited_today(user)
     if used + amount > limit:
         remaining = max(0, limit - used)
         raise ComplianceError(
-            f"This exceeds your daily deposit limit of {format_money(limit)}. "
-            f"You can deposit up to {format_money(remaining)} more today."
+            f"This exceeds your daily deposit limit of {format_coins(limit, with_naira=True)}. "
+            f"You can deposit up to {format_coins(remaining, with_naira=True)} more today."
         )
 
 
@@ -114,12 +114,12 @@ def check_can_stake(user, amount):
 
     if user.kyc_tier < User.KycTier.VERIFIED and amount > RULES["TIER1_MAX_STAKE_PER_PURCHASE"]:
         raise ComplianceError(
-            f"Tier 1 accounts can stake up to {format_money(RULES['TIER1_MAX_STAKE_PER_PURCHASE'])} per purchase. "
+            f"Tier 1 accounts can stake up to {format_coins(RULES['TIER1_MAX_STAKE_PER_PURCHASE'])} per purchase. "
             "Complete ID verification to raise this."
         )
     rg = get_settings(user)
     if rg.daily_stake_limit is not None and staked_today(user) + amount > rg.daily_stake_limit:
-        raise ComplianceError(f"This exceeds your daily play limit of {format_money(rg.daily_stake_limit)}.")
+        raise ComplianceError(f"This exceeds your daily play limit of {format_coins(rg.daily_stake_limit)}.")
 
 
 def update_limits(user, *, deposit_limit, stake_limit):

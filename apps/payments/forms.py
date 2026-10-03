@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 
-from apps.core.money import to_minor
+from apps.core.money import coins_to_minor, to_minor
 
 from .models import Deposit, PayoutAccount
 from .providers import deposit_providers, payout_provider
@@ -21,8 +21,21 @@ class AmountField(forms.DecimalField):
         return to_minor(super().clean(value))
 
 
+class CoinsField(forms.IntegerField):
+    """Whole coins in the form; kobo in cleaned_data."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("min_value", 1)
+        kwargs.setdefault("widget", forms.NumberInput(attrs={"inputmode": "numeric", "step": "1",
+                                                             "class": "amount-input", "placeholder": "0"}))
+        super().__init__(**kwargs)
+
+    def clean(self, value):
+        return coins_to_minor(super().clean(value))
+
+
 class DepositForm(forms.Form):
-    amount = AmountField(label="Amount (₦)")
+    amount = CoinsField(label="How many coins?")
     channel = forms.ChoiceField(choices=Deposit.Channel.choices, widget=forms.RadioSelect, initial="card")
     provider = forms.ChoiceField()
 
@@ -36,7 +49,7 @@ class DepositForm(forms.Form):
 
 
 class WithdrawForm(forms.Form):
-    amount = AmountField(label="Amount (₦)")
+    amount = CoinsField(label="Coins to cash out")
     destination = forms.ModelChoiceField(queryset=PayoutAccount.objects.none(), empty_label=None,
                                          label="Pay to", widget=forms.RadioSelect)
 

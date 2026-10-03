@@ -7,6 +7,7 @@ from .money import to_major, to_minor
 
 # Admin field -> rule key. Money fields are edited in naira and used in kobo.
 MONEY_RULES = {
+    "coin_value": "COIN_VALUE",
     "welcome_bonus": "WELCOME_BONUS",
     "min_deposit": "MIN_DEPOSIT",
     "max_deposit": "MAX_DEPOSIT",
@@ -33,6 +34,9 @@ def naira(**kwargs):
 class PlatformSettings(models.Model):
     """Single row of business rules the admin can change at any time (Admin → Platform settings)."""
 
+    # Coins
+    coin_value = naira(default=Decimal("10.00"),
+                       help_text="Naira value of 1 coin. Players buy, play, win and cash out in coins at this rate.")
     # Promotions
     welcome_bonus = naira(help_text="Bonus credited to every new verified player (₦). Play-only. 0 = off.")
     # Deposits

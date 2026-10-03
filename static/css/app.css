@@ -365,3 +365,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 @keyframes drop { from { transform: translateY(-14px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 
 .demo-banner { background: #fff3e0; color: #8a5300; text-align: center; font-size: .85rem; font-weight: 600; padding: 7px 16px; border-bottom: 1px solid #f6d7a7; }
+
+.prize-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.prize-strip > div { padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+.prize-strip .label { display: block; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; }
+.prize-strip b { font-size: 1.15rem; color: var(--primary-2); }
+
+.package-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 8px 0 18px; }
+.package { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 8px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font: inherit; color: var(--text); }
+.package b { font-size: 1.4rem; color: var(--primary-2); }
+.package span { font-size: .8rem; color: var(--muted); }
+.package small { font-weight: 600; margin-top: 4px; }
+.package:hover, .package.active { border-color: var(--primary); background: var(--sky); }

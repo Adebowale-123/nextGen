@@ -13,16 +13,16 @@
   <section class="card">
     <h3>Daily limits</h3>
     <div class="stat-row" style="margin-bottom:16px">
-      <div class="stat"><div class="label">Deposited today</div><div class="value">{{ deposited_today|money }}</div><small>of {{ effective_deposit_limit|money }}</small></div>
-      <div class="stat"><div class="label">Played today</div><div class="value">{{ staked_today|money }}</div>{% if rg.daily_stake_limit is not None %}<small>of {{ rg.daily_stake_limit|money }}</small>{% else %}<small>no limit set</small>{% endif %}</div>
+      <div class="stat"><div class="label">Deposited today</div><div class="value">{{ deposited_today|coins }}</div><small>of {{ effective_deposit_limit|coins }}</small></div>
+      <div class="stat"><div class="label">Played today</div><div class="value">{{ staked_today|coins }}</div>{% if rg.daily_stake_limit is not None %}<small>of {{ rg.daily_stake_limit|coins }}</small>{% else %}<small>no limit set</small>{% endif %}</div>
     </div>
     <form method="post">
       {% csrf_token %}
       {% include "partials/form.html" %}
       {% if rg.pending_effective_at %}
         <div class="alert alert-info">Pending increase takes effect {{ rg.pending_effective_at|date:"j M, g:i A" }}:
-          {% if rg.pending_deposit_limit is not None %}deposit {{ rg.pending_deposit_limit|money }}{% endif %}
-          {% if rg.pending_stake_limit is not None %} play {{ rg.pending_stake_limit|money }}{% endif %}</div>
+          {% if rg.pending_deposit_limit is not None %}deposit {{ rg.pending_deposit_limit|coins }}{% endif %}
+          {% if rg.pending_stake_limit is not None %} play {{ rg.pending_stake_limit|coins }}{% endif %}</div>
       {% endif %}
       <button class="btn btn-primary" type="submit">Save limits</button>
       <p class="faint" style="font-size:.85rem;margin:10px 0 0">Lowering a limit applies immediately. Raising or removing one takes effect after 24 hours.</p>

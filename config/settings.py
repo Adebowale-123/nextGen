@@ -273,6 +273,8 @@ NEXTGEN = {
     "AUTO_SPIN_AFTER_MINUTES": env_int("AUTO_SPIN_AFTER_MINUTES", 0),
     # Welcome bonus credited when a new player verifies their account (play-only, not withdrawable).
     "WELCOME_BONUS": env_int("WELCOME_BONUS", 500_00),
+    # Players see coins: 1 coin is worth this many kobo (₦10 by default).
+    "COIN_VALUE": env_int("COIN_VALUE", 10_00),
     # KYC passes only when the name on the ID matches the bank account name.
     "KYC_REQUIRE_BANK_NAME_MATCH": True,
     # Responsible gaming

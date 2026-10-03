@@ -288,3 +288,17 @@ document.querySelectorAll("[data-tabs]").forEach((tabs) => {
     });
   });
 });
+
+/* ---------- Buy coins: show the naira total as the player picks ---------- */
+document.querySelectorAll("[data-coin-form]").forEach((form) => {
+  const input = form.querySelector("#id_amount");
+  const out = form.querySelector("[data-naira-total]");
+  const koboPerCoin = Number(form.dataset.coinValue);
+  const update = () => {
+    const coins = Math.max(0, Math.floor(Number(input.value) || 0));
+    out.textContent = "₦" + ((coins * koboPerCoin) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 });
+    form.querySelectorAll(".package").forEach((p) => p.classList.toggle("active", Number(p.dataset.amount) === coins));
+  };
+  input.addEventListener("input", update);
+  update();
+});

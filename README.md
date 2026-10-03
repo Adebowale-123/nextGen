@@ -71,6 +71,10 @@ Games open, close and settle as visitors arrive, because the free plan has no al
 
 ## The main game: NextGen Daily (spin game)
 
+**Coins.** Players see everything in coins (1 coin = ₦10 by default; change it in Admin → Platform settings → Coins).
+They buy coin packages, play for 50 coins, win coins, and cash out coins to naira at the same rate. Money is still
+stored in kobo behind the scenes, and the back office and admin keep showing naira.
+
 - **Price and numbers:** ₦500 per play. Pressing **Play Game** gives the player 4 random numbers from 1–90.
 - **Two batches a day:** 8:00 AM–5:00 PM and 8:00 PM–12:00 AM (Lagos time). You can change this per game in Admin → Games.
 - **After a batch closes:** sales stop automatically. An admin opens **Back office → 🎡 Spin** and presses **Spin now**. Setting `AUTO_SPIN_AFTER_MINUTES` makes the system spin automatically if no admin has.

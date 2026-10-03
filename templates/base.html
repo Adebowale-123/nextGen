@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=8">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -46,8 +46,8 @@
       <div class="header-actions">
         {% if user.is_authenticated %}
           {% if nav_wallet %}
-            <a class="balance-pill" href="{% url 'payments:deposit' %}" title="Deposit">
-              {{ nav_wallet.account.balance|money:nav_wallet.currency }} <span class="plus">+</span>
+            <a class="balance-pill" href="{% url 'payments:deposit' %}" title="Buy coins">
+              {{ nav_wallet.account.balance|coins }} <span class="plus">+</span>
             </a>
           {% endif %}
           <a class="icon-btn" href="{% url 'notifications:inbox' %}" aria-label="Notifications">
@@ -109,7 +109,7 @@
   {% endwith %}
   {% endif %}
 
-  <script src="{% static 'js/app.js' %}?v=7" defer></script>
+  <script src="{% static 'js/app.js' %}?v=8" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

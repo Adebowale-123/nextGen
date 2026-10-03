@@ -12,6 +12,7 @@ class PlatformSettingsAdmin(admin.ModelAdmin):
 
     readonly_fields = ("updated_at", "updated_by")
     fieldsets = (
+        ("Coins", {"fields": ("coin_value",)}),
         ("Welcome bonus", {"fields": ("welcome_bonus",)}),
         ("Deposits", {"fields": ("min_deposit", "max_deposit", "tier1_daily_deposit_limit",
                                  "default_daily_deposit_limit")}),

@@ -15,15 +15,15 @@
 <section class="card center">
   <div class="countdown-label">Winning numbers</div>
   <div class="balls" style="justify-content:center;margin:14px 0">{% for n in draw.winning_numbers %}<span class="ball lg win">{{ n }}</span>{% endfor %}</div>
-  <p class="muted mb-0">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }} · {{ draw.total_prizes|money:draw.game.currency }} paid</p>
+  <p class="muted mb-0">{{ draw.winner_count }} winner{{ draw.winner_count|pluralize }} · {{ draw.total_prizes|coins }} paid</p>
   {% if draw.game.is_spin %}
   <div class="stat-row" style="margin-top:16px;text-align:left">
     <div class="stat"><div class="label">Players</div><div class="value">{{ draw.ticket_count }}</div></div>
-    <div class="stat"><div class="label">Prize pool</div><div class="value">{{ draw.prize_pool|money:draw.game.currency }}</div></div>
+    <div class="stat"><div class="label">Prize pool</div><div class="value">{{ draw.prize_pool|coins }}</div></div>
     <div class="stat"><div class="label">Grand prize winners</div><div class="value">{{ draw.grand_winner_count }}</div></div>
     <div class="stat"><div class="label">Consolation winners</div><div class="value">{{ draw.consolation_winner_count }}</div></div>
   </div>
-  {% if draw.carry_out %}<p class="faint" style="margin:10px 0 0">{{ draw.carry_out|money:draw.game.currency }} carried into the next game's prize pool.</p>{% endif %}
+  {% if draw.carry_out %}<p class="faint" style="margin:10px 0 0">{{ draw.carry_out|coins }} carried into the next game's prize pool.</p>{% endif %}
   {% endif %}
 </section>
 

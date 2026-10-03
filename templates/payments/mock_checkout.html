@@ -7,6 +7,7 @@
 <div class="card center">
   <small class="muted">Pay NextGen Game</small>
   <div class="balance-amount">{{ deposit.amount|money:deposit.currency }}</div>
+  <p class="muted">for {{ deposit.amount|coins }}</p>
   <p class="muted">Channel: {{ deposit.get_channel_display }}</p>
   {% if deposit.status == 'pending' %}
     <form method="post" class="stack">

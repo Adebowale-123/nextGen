@@ -4,9 +4,14 @@
     <div class="trophy"><svg class="icon"><use href="#i-trophy"/></svg></div>
     <div class="grow">
       <h3 class="mb-0">{{ card.game.name }}</h3>
-      <div class="muted">Prize pool: <b>{{ card.prize_pool|money:card.game.currency }}</b></div>
+      <div class="muted">Win up to <b>{{ card.game.grand_prize|coins }}</b></div>
     </div>
-    <div class="price">{{ card.game.ticket_price|money:card.game.currency }}</div>
+    <div class="price">{{ card.game.ticket_price|coins }}</div>
+  </div>
+
+  <div class="prize-strip">
+    <div><span class="label">Grand prize</span><b>{{ card.game.grand_prize|coins }}</b></div>
+    <div><span class="label">Consolation</span><b>{{ card.game.consolation_prize|coins }}</b></div>
   </div>
 
   <div class="game-clock">
@@ -36,7 +41,7 @@
   <div class="game-actions">
     {% if card.is_open %}
       <form method="post" action="{% url 'games:play_game' card.game.slug %}" data-play-form
-            data-game="{{ card.game.name }}" data-price="{{ card.game.ticket_price|money:card.game.currency }}"
+            data-game="{{ card.game.name }}" data-price="{{ card.game.ticket_price|coins }}"
             data-count="{{ card.game.pick_count }}">
         {% csrf_token %}
         {% new_token as token %}<input type="hidden" name="purchase_token" value="{{ token }}">

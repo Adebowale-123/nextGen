@@ -5,7 +5,7 @@
 <div class="row between" style="margin-bottom:16px">
   <div>
     <h1 class="mb-0">{{ game.name }}</h1>
-    <span class="muted">Pick {{ game.pick_count }} numbers · {{ game.ticket_price|money:game.currency }} per line</span>
+    <span class="muted">Pick {{ game.pick_count }} numbers · {{ game.ticket_price|coins }} per line</span>
   </div>
   <div class="right">
     <div class="countdown-label">Closes in</div>

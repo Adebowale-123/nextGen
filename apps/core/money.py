@@ -24,3 +24,34 @@ def format_money(minor, currency="NGN") -> str:
     symbol = CURRENCY_SYMBOLS.get(currency, f"{currency} ")
     sign = "-" if minor < 0 else ""
     return f"{sign}{symbol}{abs(to_major(minor)):,.2f}"
+
+
+# ---------------------------------------------------------------------------
+# Coins: what players see. Money is still stored in kobo; 1 coin = COIN_VALUE kobo
+# (₦10 by default, changeable in Admin → Platform settings).
+# ---------------------------------------------------------------------------
+
+
+def coin_value() -> int:
+    from .config import RULES
+
+    return RULES["COIN_VALUE"]
+
+
+def coins_to_minor(coins) -> int:
+    return int(Decimal(str(coins)) * coin_value())
+
+
+def to_coins(minor) -> Decimal:
+    return Decimal(minor) / coin_value()
+
+
+def format_coins(minor, with_naira=False) -> str:
+    if minor is None or minor == "":
+        return "—"
+    coins = to_coins(minor)
+    number = f"{coins:,.0f}" if coins == coins.to_integral_value() else f"{coins:,.1f}"
+    text = f"{number} coin" + ("" if abs(coins) == 1 else "s")
+    if with_naira:
+        text += f" ({format_money(abs(minor))})"
+    return text

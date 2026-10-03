@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from apps.compliance import services as compliance
 from apps.core.config import RULES
-from apps.core.money import format_money
+from apps.core.money import format_coins
 from apps.ledger.models import JournalTransaction, LedgerAccount, Wallet
 from apps.ledger.services import (
     InsufficientFunds,
@@ -105,7 +105,7 @@ def purchase_tickets(user, draw_id, lines, *, quick_pick_flags=None, idempotency
         cash_used = cost - bonus_used
         if wallet.account.balance < cash_used:
             shortfall = cash_used - wallet.account.balance
-            raise NeedsDeposit(f"You need {format_money(shortfall, game.currency)} more to play.", shortfall)
+            raise NeedsDeposit(f"You need {format_coins(shortfall)} more to play.", shortfall)
 
         legs = [credit(pool_account(draw), cost)]
         if bonus_used:
@@ -312,7 +312,7 @@ def _settle_pick_draw(draw_id) -> Draw:
         for ticket in winners_to_notify:
             notify(
                 ticket.user,
-                f"You won {format_money(ticket.prize_amount, game.currency)}! 🎉",
+                f"You won {format_coins(ticket.prize_amount)}! 🎉",
                 f"Ticket {ticket.serial} matched {ticket.match_count} in {draw} ({ticket.prize_tier.name}). "
                 "Winnings are in your wallet.",
                 kind="win",
@@ -353,7 +353,7 @@ def cancel_draw(draw_id, reason, staff_user=None) -> Draw:
                 total_staked=F("total_staked") - (cash + bonus), wagering_remaining=F("wagering_remaining") + cash
             )
             notify(wallet.user, "Game cancelled — refunded",
-                   f"{draw} was cancelled. {format_money(cash + bonus, draw.game.currency)} has been refunded.",
+                   f"{draw} was cancelled. {format_coins(cash + bonus)} has been refunded.",
                    kind="wallet")
         draw.tickets.filter(status=Ticket.Status.ACTIVE).update(status=Ticket.Status.REFUNDED)
         draw.status = Draw.Status.CANCELLED
@@ -547,7 +547,7 @@ def settle_spin_draw(draw_id) -> Draw:
         for ticket in winners:
             notify(
                 ticket.user,
-                f"You won {format_money(ticket.prize_amount, game.currency)}! 🎉",
+                f"You won {format_coins(ticket.prize_amount)}! 🎉",
                 f"{ticket.prize_label} in {game.name}. The money is in your wallet.",
                 kind="win", link=reverse("games:ticket_detail", args=[ticket.serial]), sms=True,
             )
